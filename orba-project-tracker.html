@@ -83,7 +83,9 @@ button.danger{color:var(--risk); border-color:#f0c4c9;}
 .f2{display:flex; gap:10px;} .f2 .frow{flex:1;}
 .mbtns{display:flex; gap:8px; justify-content:flex-end; margin-top:14px;}
 .slide-modal{width:1020px; max-width:96vw;}
-#slidebox{border:1px solid var(--line); overflow:auto;}
+#slidebox{overflow:auto; max-height:62vh;}
+#slidebox .sframe{border:1px solid var(--line); margin-bottom:10px;}
+#slidebox .slbl{font-size:11px; color:var(--dgrey); margin:0 0 4px 2px;}
 #slidebox svg{display:block; width:100%; height:auto;}
 .footer{color:var(--dgrey); font-size:11px; display:flex; justify-content:space-between; padding:0 2px;}
 .footer a{color:var(--dgrey); cursor:pointer; text-decoration:underline;}
@@ -98,7 +100,7 @@ button.danger{color:var(--risk); border-color:#f0c4c9;}
   <div class="topbtns">
     <span id="overallPill" class="pill" style="background:var(--blue);">On track</span>
     <button id="slideBtn">Project slide</button>
-    <button id="portBtn" class="primary">Portfolio slide — all projects</button>
+    <button id="portBtn" class="primary">Portfolio deck — all projects</button>
   </div>
 </div>
 
@@ -191,7 +193,8 @@ button.danger{color:var(--risk); border-color:#f0c4c9;}
     <div id="slidebox"></div>
     <div class="mbtns">
       <button id="sCopy">Copy text summary</button>
-      <button id="sPng" class="primary">Download PNG</button>
+      <button id="sPng">Download PNG</button>
+      <button id="sPptx" class="primary">Download PPTX</button>
       <button id="sClose">Close</button>
     </div>
   </div>
@@ -202,7 +205,7 @@ button.danger{color:var(--risk); border-color:#f0c4c9;}
 const KEY="gdi-pm-suite-v1", OLDKEY="orba-3ys-tracker-v1";
 const SCOL={ns:"#CBD3E3",ip:"#8092B7",done:"#100063",risk:"#D0021B"};
 const SLBL={ns:"Not started",ip:"In progress",done:"Done",risk:"At risk"};
-const BLUE="#100063", RED="#D0021B", MBLUE="#8092B7", LBLUE="#DFE4ED", DGREY="#5B5B5B", INK="#010101";
+const BLUE="100063", RED="D0021B", MBLUE="8092B7", LBLUE="DFE4ED", DGREY="5B5B5B", INK="010101";
 const DAY=864e5, ROWH=34, PH=26, HDR=24;
 
 function mk(arr){ return arr.map((s,i)=>({id:"t"+i+"_"+s[1].length, phase:s[0], name:s[1], owner:s[2],
@@ -316,7 +319,7 @@ function renderTabs(){
   state.projects.forEach(p=>{
     const hl=projHealth(p);
     h+='<div class="tab'+(p.id===state.activeId?" active":"")+'" data-id="'+p.id+'">'+
-      '<span class="tdot" style="background:'+(p.id===state.activeId?"#fff":hl[1])+'"></span>'+esc(p.name)+'</div>';
+      '<span class="tdot" style="background:'+(p.id===state.activeId?"#fff":"#"+hl[1])+'"></span>'+esc(p.name)+'</div>';
   });
   h+='<div class="tab addtab" id="newProjTab">+ New project</div>';
   h+='<button class="gear" id="gearBtn" title="Project settings">⚙</button>';
@@ -414,7 +417,7 @@ function renderKpis(){
   const pill=document.getElementById("overallPill");
   const hl=projHealth(p);
   pill.textContent=hl[0];
-  pill.style.cssText=hl[2]==="outline"?"background:#fff; color:"+RED+"; border:1.5px solid "+RED+";":"background:"+hl[1]+"; color:#fff;";
+  pill.style.cssText=hl[2]==="outline"?"background:#fff; color:#"+RED+"; border:1.5px solid #"+RED+";":"background:#"+hl[1]+"; color:#fff;";
 }
 
 // ---- drag ----
@@ -548,37 +551,32 @@ $("pDelete").onclick=()=>{
   save(); $("projBg").classList.remove("open"); syncHeadline(); render();
 };
 
-// ---- slides ----
-let slideMode="one";
+// =====================================================================
+// SLIDES — content is built as a list of primitive ops, then rendered
+// to SVG (preview/PNG) or native PPTX shapes (editable download).
+// op types: {t:"text",x,y,w,size,b,color,align,lines:[[runs]]} (y = top)
+//           {t:"rect",x,y,w,h,fill,stroke,rx}  {t:"line",x1,y1,x2,w(px),color}
+//           {t:"ell",cx,cy,rx,ry,fill}         {t:"tri"} corner triangle
+// =====================================================================
 function wrapTxt(s,n){
   const w=s.split(" "), out=[]; let cur="";
   w.forEach(x=>{ if((cur+" "+x).trim().length>n){ out.push(cur.trim()); cur=x; } else cur+=" "+x; });
   if(cur.trim())out.push(cur.trim()); return out;
 }
-function escX(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function card(x,y,w,h){
-  return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="6" fill="#ffffff" stroke="'+LBLUE+'" stroke-width="1" filter="url(#shadow)"/>';
-}
-function secHdr(x,y,label,color){
-  return '<rect x="'+x+'" y="'+(y-11)+'" width="18" height="3" fill="'+RED+'"/>'+
-    '<text x="'+(x+26)+'" y="'+y+'" font-size="14" font-weight="bold" fill="'+(color||BLUE)+'" letter-spacing="1">'+label+'</text>';
-}
-function svgOpen(){
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Helvetica Neue,Helvetica,Arial,sans-serif">'+
-  '<defs><filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#100063" flood-opacity="0.10"/></filter></defs>'+
-  '<rect width="1280" height="720" fill="#ffffff"/>';
-}
-function svgClose(src){
-  return '<text x="50" y="704" font-size="10.5" fill="'+MBLUE+'">'+src+'</text>'+
-  '<polygon points="1280,720 1226,720 1280,666" fill="'+RED+'"/></svg>';
-}
-function chip(x,y,label,color,outline){
+function R(text,opts){ return Object.assign({text:String(text)},opts||{}); } // run
+function chipOps(ops,xRight,y,label,color,outline){
   const w=Math.max(110,label.length*9+36);
-  return '<rect x="'+(x-w)+'" y="'+y+'" rx="16" width="'+w+'" height="32" fill="'+(outline?"#ffffff":color)+'" stroke="'+color+'" stroke-width="1.5"/>'+
-  '<text x="'+(x-w/2)+'" y="'+(y+21)+'" font-size="13" font-weight="bold" fill="'+(outline?color:"#ffffff")+'" text-anchor="middle" letter-spacing="1">'+label.toUpperCase()+'</text>';
+  ops.push({t:"rect",x:xRight-w,y,w,h:32,fill:outline?"FFFFFF":color,stroke:color,rx:16});
+  ops.push({t:"text",x:xRight-w,y:y+8,w,size:13,b:1,color:outline?color:"FFFFFF",align:"ctr",lines:[[R(label.toUpperCase())]]});
 }
+function secOps(ops,x,y,label,color){
+  ops.push({t:"rect",x,y:y-11,w:18,h:3,fill:RED});
+  ops.push({t:"text",x:x+26,y:y-12,w:400,size:14,b:1,color:color||BLUE,lines:[[R(label)]]});
+}
+function cardOps(ops,x,y,w,h){ ops.push({t:"rect",x,y,w,h,fill:"FFFFFF",stroke:LBLUE,rx:6}); }
 
-function buildSlide(p){
+function buildProjectOps(p){
+  const ops=[];
   const ts=p.tasks, ms=ts.filter(t=>t.ms).sort((a,b)=>pd(a.start)-pd(b.start)).slice(0,8);
   const risk=ts.filter(t=>t.status==="risk");
   const done=ts.filter(t=>t.status==="done");
@@ -591,90 +589,97 @@ function buildSlide(p){
   const dts=lastMs?Math.max(0,Math.round((pd(lastMs.start)-now)/DAY)):0;
   const pct=Math.round(done.length/Math.max(1,ts.length)*100);
   const msd=allms.filter(t=>t.status==="done").length;
-  let s=svgOpen();
-  s+='<rect x="50" y="46" width="26" height="4" fill="'+RED+'"/>';
-  s+='<text x="88" y="56" font-size="25" font-weight="bold" fill="'+INK+'">'+escX(p.name)+' — Status Update</text>';
-  s+='<text x="88" y="80" font-size="13.5" fill="'+DGREY+'">'+dstr+(p.sub?'  ·  '+escX(p.sub):"")+'</text>';
-  s+=chip(1230,38,hl[0],hl[1],hl[2]==="outline");
+  ops.push({t:"rect",x:50,y:46,w:26,h:4,fill:RED});
+  ops.push({t:"text",x:88,y:34,w:920,size:25,b:1,color:INK,lines:[[R(p.name+" — Status Update")]]});
+  ops.push({t:"text",x:88,y:68,w:920,size:13.5,color:DGREY,lines:[[R(dstr+(p.sub?"  ·  "+p.sub:""))]]});
+  chipOps(ops,1230,38,hl[0],hl[1],hl[2]==="outline");
   const stats=[[pct+"%","complete"],[msd+" / "+allms.length,"milestones done"],[String(risk.length),"items at risk"],[dts+"d","to final milestone"]];
   stats.forEach((st,i)=>{
     const x=50+i*300;
-    s+='<text x="'+x+'" y="132" font-size="30" font-weight="bold" fill="'+BLUE+'">'+st[0]+'</text>';
-    s+='<line x1="'+(x+95)+'" y1="124" x2="'+(x+125)+'" y2="124" stroke="'+MBLUE+'" stroke-width="1.5"/>';
-    s+='<text x="'+(x+133)+'" y="129" font-size="12.5" fill="'+DGREY+'">'+st[1]+'</text>';
+    ops.push({t:"text",x,y:106,w:120,size:30,b:1,color:BLUE,lines:[[R(st[0])]]});
+    ops.push({t:"line",x1:x+95,y1:123,x2:x+125,w:1.5,color:MBLUE});
+    ops.push({t:"text",x:x+133,y:117,w:170,size:12.5,color:DGREY,lines:[[R(st[1])]]});
   });
   const hltxt=p.headline||"(Add a headline in the tracker — the one-sentence 'so what')";
   const hlines=wrapTxt(hltxt,104).slice(0,2);
   const hH=hlines.length*24+20;
-  s+=card(50,156,1180,hH);
-  hlines.forEach((l,i)=>{ s+='<text x="70" y="'+(182+i*24)+'" font-size="16" font-weight="bold" fill="'+INK+'">'+escX(l)+'</text>'; });
+  cardOps(ops,50,156,1180,hH);
+  ops.push({t:"text",x:70,y:166,w:1140,size:16,b:1,color:INK,lines:hlines.map(l=>[R(l)])});
   let topY=156+hH+38;
-  s+=secHdr(50,topY,"MILESTONES");
+  secOps(ops,50,topY,"MILESTONES");
   let y=topY+16;
-  if(!ms.length)s+='<text x="58" y="'+(y+16)+'" font-size="13" fill="'+DGREY+'">No milestones defined yet</text>';
+  if(!ms.length)ops.push({t:"text",x:58,y:y+4,w:500,size:13,color:DGREY,lines:[[R("No milestones defined yet")]]});
   ms.forEach(t=>{
-    const c=SCOL[t.status];
+    const c=SCOL[t.status].slice(1);
     const slip=t.bStart&&t.bStart!==t.start?Math.round((pd(t.start)-pd(t.bStart))/DAY):0;
-    s+='<circle cx="58" cy="'+(y+11)+'" r="6" fill="'+c+'"/>';
-    s+='<text x="76" y="'+(y+16)+'" font-size="13.5" fill="'+INK+'">'+escX(t.name.length>44?t.name.slice(0,42)+"…":t.name)+'</text>';
-    s+='<text x="480" y="'+(y+16)+'" font-size="13" fill="'+DGREY+'">'+fmt(t.start)+(slip?(' <tspan fill="'+(slip>0?RED:BLUE)+'" font-weight="bold">('+(slip>0?"+":"")+slip+'d)</tspan>'):"")+'</text>';
-    s+='<text x="585" y="'+(y+16)+'" font-size="12" fill="'+(t.status==="risk"?RED:t.status==="done"?BLUE:DGREY)+'" font-weight="bold">'+SLBL[t.status]+'</text>';
+    ops.push({t:"ell",cx:58,cy:y+11,rx:6,ry:6,fill:c});
+    ops.push({t:"text",x:76,y:y+4,w:395,size:13.5,color:INK,lines:[[R(t.name.length>44?t.name.slice(0,42)+"…":t.name)]]});
+    const dateRuns=[R(fmt(t.start))];
+    if(slip)dateRuns.push(R(" ("+(slip>0?"+":"")+slip+"d)",{b:1,color:slip>0?RED:BLUE}));
+    ops.push({t:"text",x:480,y:y+4,w:100,size:13,color:DGREY,lines:[dateRuns]});
+    ops.push({t:"text",x:585,y:y+5,w:110,size:12,b:1,color:t.status==="risk"?RED:t.status==="done"?BLUE:DGREY,lines:[[R(SLBL[t.status])]]});
     y+=29;
   });
-  s+=secHdr(720,topY,"PROGRESS BY PHASE");
+  secOps(ops,720,topY,"PROGRESS BY PHASE");
   let py=topY+20;
   phases(p).slice(0,5).forEach(ph=>{
     const pt=ts.filter(t=>t.phase===ph); if(!pt.length)return;
     const d=pt.filter(t=>t.status==="done").length, pp=d/pt.length;
-    s+='<text x="720" y="'+(py+12)+'" font-size="13" fill="'+INK+'">'+escX(ph.length>26?ph.slice(0,24)+"…":ph)+'</text>';
-    s+='<rect x="930" y="'+py+'" width="240" height="13" rx="6.5" fill="'+LBLUE+'"/>';
-    if(pp>0)s+='<rect x="930" y="'+py+'" width="'+Math.max(13,240*pp)+'" height="13" rx="6.5" fill="'+BLUE+'"/>';
-    s+='<text x="1180" y="'+(py+11)+'" font-size="12" fill="'+DGREY+'">'+d+'/'+pt.length+'</text>';
+    ops.push({t:"text",x:720,y:py,w:205,size:13,color:INK,lines:[[R(ph.length>26?ph.slice(0,24)+"…":ph)]]});
+    ops.push({t:"rect",x:930,y:py,w:240,h:13,fill:LBLUE,rx:6.5});
+    if(pp>0)ops.push({t:"rect",x:930,y:py,w:Math.max(13,240*pp),h:13,fill:BLUE,rx:6.5});
+    ops.push({t:"text",x:1180,y:py,w:46,size:12,color:DGREY,lines:[[R(d+"/"+pt.length)]]});
     py+=29;
   });
   py+=16;
-  s+=secHdr(720,py,"NEXT 14 DAYS"); py+=22;
+  secOps(ops,720,py,"NEXT 14 DAYS"); py+=22;
   (soon.slice(0,4).length?soon.slice(0,4):[{name:"No items in window",owner:""}]).forEach(t=>{
-    s+='<circle cx="725" cy="'+(py-4)+'" r="3" fill="'+MBLUE+'"/>';
-    s+='<text x="738" y="'+py+'" font-size="13" fill="'+INK+'">'+escX(t.name.length>50?t.name.slice(0,48)+"…":t.name)+(t.owner?' <tspan fill="'+DGREY+'">('+escX(t.owner)+')</tspan>':"")+'</text>'; py+=23;
+    ops.push({t:"ell",cx:725,cy:py+3,rx:3,ry:3,fill:MBLUE});
+    const runs=[R(t.name.length>50?t.name.slice(0,48)+"…":t.name)];
+    if(t.owner)runs.push(R(" ("+t.owner+")",{color:DGREY}));
+    ops.push({t:"text",x:738,y:py-4,w:492,size:13,color:INK,lines:[runs]});
+    py+=23;
   });
   const bandY=556, cardH=120;
-  s+=card(50,bandY,565,cardH);
-  s+=secHdr(70,bandY+28,"COMPLETED");
-  let cy=bandY+50;
+  cardOps(ops,50,bandY,565,cardH);
+  secOps(ops,70,bandY+28,"COMPLETED");
+  let cy=bandY+40;
   (done.slice(-3).length?done.slice(-3):[{name:"None yet"}]).forEach(t=>{
-    s+='<text x="70" y="'+cy+'" font-size="12.5" fill="'+INK+'">✓ '+escX(t.name.length>56?t.name.slice(0,54)+"…":t.name)+'</text>'; cy+=21;
+    ops.push({t:"text",x:70,y:cy,w:520,size:12.5,color:INK,lines:[[R("✓ "+(t.name.length>56?t.name.slice(0,54)+"…":t.name))]]});
+    cy+=21;
   });
-  s+=card(640,bandY,590,cardH);
-  s+=secHdr(660,bandY+28,"RISKS &amp; ASKS",risk.length?RED:BLUE);
-  let ry=bandY+50;
-  if(!risk.length){ s+='<text x="660" y="'+ry+'" font-size="12.5" fill="'+DGREY+'">No items flagged at risk</text>'; }
+  cardOps(ops,640,bandY,590,cardH);
+  secOps(ops,660,bandY+28,"RISKS & ASKS",risk.length?RED:BLUE);
+  let ry=bandY+40;
+  if(!risk.length){ ops.push({t:"text",x:660,y:ry,w:540,size:12.5,color:DGREY,lines:[[R("No items flagged at risk")]]}); }
   else risk.slice(0,3).forEach(t=>{
     const note=t.notes?(" — "+t.notes):"";
-    wrapTxt("• "+t.name+note,76).slice(0,2).forEach(l=>{ s+='<text x="660" y="'+ry+'" font-size="12.5" fill="'+INK+'">'+escX(l)+'</text>'; ry+=19; });
-    ry+=2;
+    const ls=wrapTxt("• "+t.name+note,76).slice(0,2);
+    ops.push({t:"text",x:660,y:ry,w:550,size:12.5,color:INK,lines:ls.map(l=>[R(l)])});
+    ry+=ls.length*19+4;
   });
-  s+=svgClose("Source: ORBA project tracker · "+escX(p.name));
-  return s;
+  ops.push({t:"text",x:50,y:694,w:800,size:10.5,color:MBLUE,lines:[[R("Source: ORBA project tracker · "+p.name)]]});
+  ops.push({t:"tri"});
+  return ops;
 }
 
-function buildPortfolio(){
+function buildPortfolioOps(){
+  const ops=[];
   const now=new Date(); now.setHours(0,0,0,0);
   const dstr=now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
   const ps=state.projects.slice(0,6);
   const onTrack=ps.filter(p=>projHealth(p)[0]==="On track").length;
   const attn=ps.length-onTrack;
   const riskTotal=ps.reduce((a,p)=>a+p.tasks.filter(t=>t.status==="risk").length,0);
-  let s=svgOpen();
-  s+='<rect x="50" y="46" width="26" height="4" fill="'+RED+'"/>';
-  s+='<text x="88" y="56" font-size="25" font-weight="bold" fill="'+INK+'">ORBA Portfolio Status Update</text>';
-  s+='<text x="88" y="80" font-size="13.5" fill="'+DGREY+'">'+dstr+'  ·  '+ps.length+' active projects</text>';
+  ops.push({t:"rect",x:50,y:46,w:26,h:4,fill:RED});
+  ops.push({t:"text",x:88,y:34,w:920,size:25,b:1,color:INK,lines:[[R("ORBA Portfolio Status Update")]]});
+  ops.push({t:"text",x:88,y:68,w:920,size:13.5,color:DGREY,lines:[[R(dstr+"  ·  "+ps.length+" active projects")]]});
   const stats=[[String(ps.length),"projects"],[String(onTrack),"on track"],[String(attn),"need attention"],[String(riskTotal),"items at risk"]];
   stats.forEach((st,i)=>{
     const x=50+i*300;
-    s+='<text x="'+x+'" y="132" font-size="30" font-weight="bold" fill="'+BLUE+'">'+st[0]+'</text>';
-    s+='<line x1="'+(x+70)+'" y1="124" x2="'+(x+100)+'" y2="124" stroke="'+MBLUE+'" stroke-width="1.5"/>';
-    s+='<text x="'+(x+108)+'" y="129" font-size="12.5" fill="'+DGREY+'">'+st[1]+'</text>';
+    ops.push({t:"text",x,y:106,w:90,size:30,b:1,color:BLUE,lines:[[R(st[0])]]});
+    ops.push({t:"line",x1:x+70,y1:123,x2:x+100,w:1.5,color:MBLUE});
+    ops.push({t:"text",x:x+108,y:117,w:180,size:12.5,color:DGREY,lines:[[R(st[1])]]});
   });
   const top=168, rowH=Math.min(118,Math.floor(480/ps.length));
   ps.forEach((p,i)=>{
@@ -685,39 +690,237 @@ function buildPortfolio(){
     const risk=ts.filter(t=>t.status==="risk");
     const hl=projHealth(p);
     const up=ms.filter(t=>t.status!=="done"&&pd(t.start)>=now).sort((a,b)=>pd(a.start)-pd(b.start))[0];
-    s+=card(50,y,1180,rowH);
-    s+='<text x="74" y="'+(y+30)+'" font-size="16" font-weight="bold" fill="'+INK+'">'+escX(p.name)+'</text>';
-    s+=chip(1206,y+12,hl[0],hl[1],hl[2]==="outline");
+    cardOps(ops,50,y,1180,rowH);
+    ops.push({t:"text",x:74,y:y+14,w:880,size:16,b:1,color:INK,lines:[[R(p.name)]]});
+    chipOps(ops,1206,y+12,hl[0],hl[1],hl[2]==="outline");
     const hltxt=p.headline||(p.sub||"");
-    if(hltxt){
-      s+='<text x="74" y="'+(y+52)+'" font-size="12.5" fill="'+DGREY+'">'+escX(hltxt.length>110?hltxt.slice(0,108)+"…":hltxt)+'</text>';
-    }
+    if(hltxt)ops.push({t:"text",x:74,y:y+40,w:1000,size:12.5,color:DGREY,lines:[[R(hltxt.length>110?hltxt.slice(0,108)+"…":hltxt)]]});
     const ly=y+rowH-30;
-    s+='<rect x="74" y="'+(ly-10)+'" width="200" height="12" rx="6" fill="'+LBLUE+'"/>';
-    if(pct>0)s+='<rect x="74" y="'+(ly-10)+'" width="'+Math.max(12,200*pct/100)+'" height="12" rx="6" fill="'+BLUE+'"/>';
-    s+='<text x="284" y="'+ly+'" font-size="12" fill="'+DGREY+'">'+pct+'%</text>';
-    s+='<text x="340" y="'+ly+'" font-size="12.5" fill="'+INK+'"><tspan font-weight="bold" fill="'+BLUE+'">'+msd+'/'+ms.length+'</tspan> milestones</text>';
-    if(up)s+='<text x="500" y="'+ly+'" font-size="12.5" fill="'+INK+'">Next: '+escX(up.name.length>40?up.name.slice(0,38)+"…":up.name)+' <tspan fill="'+DGREY+'">('+fmt(up.start)+')</tspan></text>';
-    s+='<text x="980" y="'+ly+'" font-size="12.5" fill="'+(risk.length?RED:DGREY)+'"'+(risk.length?' font-weight="bold"':'')+'>'+(risk.length?("⚠ "+risk.length+" at risk"):"No risks flagged")+'</text>';
+    ops.push({t:"rect",x:74,y:ly-10,w:200,h:12,fill:LBLUE,rx:6});
+    if(pct>0)ops.push({t:"rect",x:74,y:ly-10,w:Math.max(12,200*pct/100),h:12,fill:BLUE,rx:6});
+    ops.push({t:"text",x:284,y:ly-11,w:50,size:12,color:DGREY,lines:[[R(pct+"%")]]});
+    ops.push({t:"text",x:340,y:ly-11,w:150,size:12.5,color:INK,lines:[[R(msd+"/"+ms.length,{b:1,color:BLUE}),R(" milestones")]]});
+    if(up)ops.push({t:"text",x:500,y:ly-11,w:460,size:12.5,color:INK,lines:[[R("Next: "+(up.name.length>40?up.name.slice(0,38)+"…":up.name)),R(" ("+fmt(up.start)+")",{color:DGREY})]]});
+    ops.push({t:"text",x:980,y:ly-11,w:240,size:12.5,b:risk.length?1:0,color:risk.length?RED:DGREY,lines:[[R(risk.length?("⚠ "+risk.length+" at risk"):"No risks flagged")]]});
   });
-  s+=svgClose("Source: ORBA project tracker · portfolio view");
-  return s;
+  ops.push({t:"text",x:50,y:694,w:800,size:10.5,color:MBLUE,lines:[[R("Source: ORBA project tracker · portfolio view")]]});
+  ops.push({t:"tri"});
+  return ops;
 }
 
-$("slideBtn").onclick=()=>{ slideMode="one"; $("smTitle").textContent="Status slide — "+proj().name;
-  $("slidebox").innerHTML=buildSlide(proj()); $("slideBg").classList.add("open"); };
-$("portBtn").onclick=()=>{ slideMode="all"; $("smTitle").textContent="Portfolio slide — all projects";
-  $("slidebox").innerHTML=buildPortfolio(); $("slideBg").classList.add("open"); };
+// ---- ops → SVG ----
+function escX(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function opsToSVG(ops){
+  let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Helvetica Neue,Helvetica,Arial,sans-serif">';
+  s+='<rect width="1280" height="720" fill="#ffffff"/>';
+  ops.forEach(o=>{
+    if(o.t==="rect"){
+      s+='<rect x="'+o.x+'" y="'+o.y+'" width="'+o.w+'" height="'+o.h+'" rx="'+(o.rx||0)+'" fill="#'+o.fill+'"'+
+        (o.stroke?' stroke="#'+o.stroke+'" stroke-width="1"':'')+'/>';
+    }else if(o.t==="line"){
+      s+='<line x1="'+o.x1+'" y1="'+o.y1+'" x2="'+o.x2+'" y2="'+o.y1+'" stroke="#'+o.color+'" stroke-width="'+o.w+'"/>';
+    }else if(o.t==="ell"){
+      s+='<ellipse cx="'+o.cx+'" cy="'+o.cy+'" rx="'+o.rx+'" ry="'+o.ry+'" fill="#'+o.fill+'"/>';
+    }else if(o.t==="tri"){
+      s+='<polygon points="1280,720 1226,720 1280,666" fill="#'+RED+'"/>';
+    }else if(o.t==="text"){
+      o.lines.forEach((runs,li)=>{
+        const by=o.y+o.size*0.95+li*(o.size*1.45);
+        let anchor=o.align==="ctr"?' text-anchor="middle" x="'+(o.x+o.w/2)+'"':' x="'+o.x+'"';
+        s+='<text'+anchor+' y="'+by+'" font-size="'+o.size+'"'+(o.b?' font-weight="bold"':'')+' fill="#'+(o.color||INK)+'">';
+        runs.forEach(r=>{
+          s+='<tspan'+(r.color?' fill="#'+r.color+'"':'')+(r.b&&!o.b?' font-weight="bold"':'')+'>'+escX(r.text)+'</tspan>';
+        });
+        s+='</text>';
+      });
+    }
+  });
+  return s+'</svg>';
+}
+
+// ---- ops → PPTX (native editable shapes; minimal zip + OOXML writer) ----
+const E=9525; // EMU per px at 1280x720 on a 16:9 slide
+function xesc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+let _sid=1;
+function spRect(o){
+  const id=++_sid, rx=o.rx||0;
+  const adj=rx?Math.min(50000,Math.round(rx/Math.min(o.w,o.h)*100000)):0;
+  return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="rect'+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>'+
+  '<a:xfrm><a:off x="'+Math.round(o.x*E)+'" y="'+Math.round(o.y*E)+'"/><a:ext cx="'+Math.max(1,Math.round(o.w*E))+'" cy="'+Math.max(1,Math.round(o.h*E))+'"/></a:xfrm>'+
+  '<a:prstGeom prst="'+(rx?'roundRect':'rect')+'">'+(rx?'<a:avLst><a:gd name="adj" fmla="val '+adj+'"/></a:avLst>':'<a:avLst/>')+'</a:prstGeom>'+
+  '<a:solidFill><a:srgbClr val="'+o.fill+'"/></a:solidFill>'+
+  (o.stroke?'<a:ln w="12700"><a:solidFill><a:srgbClr val="'+o.stroke+'"/></a:solidFill></a:ln>':'<a:ln><a:noFill/></a:ln>')+
+  '</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>';
+}
+function spEll(o){
+  const id=++_sid;
+  return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="ell'+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>'+
+  '<a:xfrm><a:off x="'+Math.round((o.cx-o.rx)*E)+'" y="'+Math.round((o.cy-o.ry)*E)+'"/><a:ext cx="'+Math.round(o.rx*2*E)+'" cy="'+Math.round(o.ry*2*E)+'"/></a:xfrm>'+
+  '<a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="'+o.fill+'"/></a:solidFill><a:ln><a:noFill/></a:ln>'+
+  '</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>';
+}
+function spTri(){
+  const id=++_sid;
+  return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="tri'+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>'+
+  '<a:xfrm flipH="1"><a:off x="'+Math.round(1226*E)+'" y="'+Math.round(666*E)+'"/><a:ext cx="'+Math.round(54*E)+'" cy="'+Math.round(54*E)+'"/></a:xfrm>'+
+  '<a:prstGeom prst="rtTriangle"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="'+RED+'"/></a:solidFill><a:ln><a:noFill/></a:ln>'+
+  '</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>';
+}
+function spText(o){
+  const id=++_sid;
+  const lineH=o.size*1.45, h=o.lines.length*lineH+8;
+  let body='<a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="t"/><a:lstStyle/>';
+  o.lines.forEach(runs=>{
+    body+='<a:p><a:pPr algn="'+(o.align==="ctr"?"ctr":"l")+'"/>';
+    runs.forEach(r=>{
+      const col=r.color||o.color||INK, bold=(r.b!=null?r.b:o.b)?' b="1"':'';
+      body+='<a:r><a:rPr lang="en-US" sz="'+Math.round(o.size*75)+'"'+bold+' dirty="0"><a:solidFill><a:srgbClr val="'+col+'"/></a:solidFill>'+
+        '<a:latin typeface="Arial"/></a:rPr><a:t>'+xesc(r.text)+'</a:t></a:r>';
+    });
+    body+='</a:p>';
+  });
+  return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="txt'+id+'"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr>'+
+  '<a:xfrm><a:off x="'+Math.round(o.x*E)+'" y="'+Math.round(o.y*E)+'"/><a:ext cx="'+Math.round(o.w*E)+'" cy="'+Math.round(h*E)+'"/></a:xfrm>'+
+  '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody>'+body+'</p:txBody></p:sp>';
+}
+function slideXML(ops){
+  let shapes="";
+  ops.forEach(o=>{
+    if(o.t==="rect")shapes+=spRect(o);
+    else if(o.t==="line")shapes+=spRect({x:o.x1,y:o.y1-o.w/2,w:o.x2-o.x1,h:Math.max(1,o.w),fill:o.color});
+    else if(o.t==="ell")shapes+=spEll(o);
+    else if(o.t==="tri")shapes+=spTri();
+    else if(o.t==="text")shapes+=spText(o);
+  });
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+  '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'+
+  '<p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>'+
+  '<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'+
+  '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'+
+  shapes+'</p:spTree></p:cSld><p:clrMapOvr><a:overrideClrMapping bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/></p:clrMapOvr></p:sld>';
+}
+// minimal zip (stored, no compression)
+const CRCT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=~0;for(let i=0;i<u.length;i++)c=(c>>>8)^CRCT[(c^u[i])&255];return(~c)>>>0;}
+function zipFiles(files){
+  const enc=new TextEncoder(), parts=[], cdir=[]; let off=0;
+  const n16=v=>new Uint8Array([v&255,(v>>8)&255]);
+  const n32=v=>new Uint8Array([v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255]);
+  files.forEach(f=>{
+    const name=enc.encode(f.n), data=enc.encode(f.d), crc=crc32(data);
+    const hdr=[n32(0x04034b50),n16(20),n16(0),n16(0),n16(24576),n16(23755),n32(crc),n32(data.length),n32(data.length),n16(name.length),n16(0)];
+    let lhLen=0; hdr.forEach(h=>lhLen+=h.length);
+    parts.push(...hdr,name,data);
+    cdir.push({name,crc,size:data.length,off});
+    off+=lhLen+name.length+data.length;
+  });
+  const cdStart=off; let cdLen=0;
+  cdir.forEach(c=>{
+    const e=[n32(0x02014b50),n16(20),n16(20),n16(0),n16(0),n16(24576),n16(23755),n32(c.crc),n32(c.size),n32(c.size),n16(c.name.length),n16(0),n16(0),n16(0),n16(0),n32(0),n32(c.off)];
+    let l=0; e.forEach(h=>l+=h.length);
+    parts.push(...e,c.name); cdLen+=l+c.name.length;
+  });
+  parts.push(n32(0x06054b50),n16(0),n16(0),n16(cdir.length),n16(cdir.length),n32(cdLen),n32(cdStart),n16(0));
+  return new Blob(parts,{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"});
+}
+function pptxFromDeck(deck){
+  _sid=1;
+  const files=[];
+  const N=deck.length;
+  let ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+  '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+
+  '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'+
+  '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>'+
+  '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'+
+  '<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'+
+  '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'+
+  '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>';
+  for(let i=1;i<=N;i++)ct+='<Override PartName="/ppt/slides/slide'+i+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+  ct+='</Types>';
+  files.push({n:"[Content_Types].xml",d:ct});
+  files.push({n:"_rels/.rels",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>'+
+  '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'+
+  '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>'});
+  files.push({n:"docProps/core.xml",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Status Update</dc:title><dc:creator>ORBA Project Tracker</dc:creator></cp:coreProperties>'});
+  files.push({n:"docProps/app.xml",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>ORBA Project Tracker</Application></Properties>'});
+  let pres='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'+
+  '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>';
+  for(let i=0;i<N;i++)pres+='<p:sldId id="'+(256+i)+'" r:id="rId'+(2+i)+'"/>';
+  pres+='</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>';
+  files.push({n:"ppt/presentation.xml",d:pres});
+  let prels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>';
+  for(let i=0;i<N;i++)prels+='<Relationship Id="rId'+(2+i)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+(i+1)+'.xml"/>';
+  prels+='</Relationships>';
+  files.push({n:"ppt/_rels/presentation.xml.rels",d:prels});
+  const fmt3='<a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst>'+
+  '<a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst>'+
+  '<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>'+
+  '<a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst>';
+  files.push({n:"ppt/theme/theme1.xml",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="GDI"><a:themeElements>'+
+  '<a:clrScheme name="GDI"><a:dk1><a:srgbClr val="010101"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="100063"/></a:dk2><a:lt2><a:srgbClr val="F1F1F1"/></a:lt2>'+
+  '<a:accent1><a:srgbClr val="100063"/></a:accent1><a:accent2><a:srgbClr val="D0021B"/></a:accent2><a:accent3><a:srgbClr val="8092B7"/></a:accent3><a:accent4><a:srgbClr val="DFE4ED"/></a:accent4>'+
+  '<a:accent5><a:srgbClr val="5B5B5B"/></a:accent5><a:accent6><a:srgbClr val="CBD3E3"/></a:accent6><a:hlink><a:srgbClr val="100063"/></a:hlink><a:folHlink><a:srgbClr val="8092B7"/></a:folHlink></a:clrScheme>'+
+  '<a:fontScheme name="GDI"><a:majorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme>'+
+  '<a:fmtScheme name="GDI">'+fmt3+'</a:fmtScheme></a:themeElements></a:theme>'});
+  const emptyTree='<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree>';
+  files.push({n:"ppt/slideMasters/slideMaster1.xml",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'+
+  '<p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>'+emptyTree+'</p:cSld>'+
+  '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>'+
+  '<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>'});
+  files.push({n:"ppt/slideMasters/_rels/slideMaster1.xml.rels",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'+
+  '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/></Relationships>'});
+  files.push({n:"ppt/slideLayouts/slideLayout1.xml",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank">'+
+  '<p:cSld>'+emptyTree+'</p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>'});
+  files.push({n:"ppt/slideLayouts/_rels/slideLayout1.xml.rels",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>'});
+  deck.forEach((sl,i)=>{
+    files.push({n:"ppt/slides/slide"+(i+1)+".xml",d:slideXML(sl.ops)});
+    files.push({n:"ppt/slides/_rels/slide"+(i+1)+".xml.rels",d:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>'});
+  });
+  return zipFiles(files);
+}
+
+// ---- slide modal ----
+let deck=[], slideMode="one";
+function showDeck(mode,title){
+  slideMode=mode;
+  $("smTitle").textContent=title;
+  let h="";
+  deck.forEach(sl=>{ h+='<div class="slbl">'+esc(sl.name)+'</div><div class="sframe">'+opsToSVG(sl.ops)+'</div>'; });
+  $("slidebox").innerHTML=h;
+  $("sPng").style.display=deck.length===1?"":"none";
+  $("slideBg").classList.add("open");
+}
+$("slideBtn").onclick=()=>{
+  deck=[{name:proj().name, ops:buildProjectOps(proj())}];
+  showDeck("one","Status slide — "+proj().name);
+};
+$("portBtn").onclick=()=>{
+  deck=[{name:"Portfolio summary", ops:buildPortfolioOps()}];
+  state.projects.forEach(p=>deck.push({name:p.name, ops:buildProjectOps(p)}));
+  showDeck("all","Portfolio deck — summary + "+state.projects.length+" project slides");
+};
 $("sClose").onclick=()=>$("slideBg").classList.remove("open");
+$("sPptx").onclick=()=>{
+  const blob=pptxFromDeck(deck);
+  const a=document.createElement("a");
+  a.download=(slideMode==="all"?"ORBA Portfolio Deck ":proj().name+" Status ")+iso(new Date())+".pptx";
+  a.href=URL.createObjectURL(blob); a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+};
 $("sPng").onclick=()=>{
-  const svg=$("slidebox").innerHTML;
+  const svg=opsToSVG(deck[0].ops);
   const img=new Image();
   img.onload=()=>{
     const c=document.createElement("canvas"); c.width=2560; c.height=1440;
     const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,2560,1440);
     ctx.drawImage(img,0,0,2560,1440);
     const a=document.createElement("a");
-    a.download=(slideMode==="all"?"ORBA Portfolio Status ":proj().name+" Status ")+iso(new Date())+".png";
+    a.download=deck[0].name+" Status "+iso(new Date())+".png";
     a.href=c.toDataURL("image/png"); a.click();
   };
   img.src="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
