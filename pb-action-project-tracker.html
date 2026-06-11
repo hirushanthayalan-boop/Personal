@@ -136,6 +136,7 @@ button.danger{color:var(--risk); border-color:#f0c4c9;}
 <div style="display:flex; gap:8px; margin-bottom:14px;">
   <button id="addBtn">+ Add item</button>
   <button id="addPhaseBtn">+ New phase</button>
+  <button id="importBtn">Import updates</button>
 </div>
 
 <div class="footer">
@@ -182,6 +183,15 @@ button.danger{color:var(--risk); border-color:#f0c4c9;}
       <button id="pCancel">Cancel</button>
       <button class="primary" id="pSave">Save</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="impBg">
+  <div class="modal">
+    <h2>Import updates</h2>
+    <div class="frow"><label>Paste update JSON (from the weekly Slack/Gmail review)</label><textarea id="impText" style="min-height:140px"></textarea></div>
+    <div id="impResult" style="font-size:12px; color:var(--dgrey); margin-bottom:6px; white-space:pre-wrap;"></div>
+    <div class="mbtns"><button id="impCancel">Close</button><button class="primary" id="impApply">Apply</button></div>
   </div>
 </div>
 
@@ -907,7 +917,51 @@ $("sCopy").onclick=()=>{
   }
   navigator.clipboard.writeText(txt).then(()=>{ $("sCopy").textContent="Copied ✓"; setTimeout(()=>$("sCopy").textContent="Copy text summary",1500); });
 };
-[["editBg"],["slideBg"],["projBg"]].forEach(([id])=>{ $(id).addEventListener("click",e=>{ if(e.target.id===id)$(id).classList.remove("open"); }); });
+// ---- import updates (payload from weekly Slack/Gmail review skill) ----
+function findProjByName(name){
+  if(name==null)return null;
+  const n=String(name).toLowerCase();
+  return state.projects.find(p=>p.name.toLowerCase()===n)||state.projects.find(p=>p.id===name)||
+         state.projects.find(p=>p.name.toLowerCase().includes(n))||null;
+}
+function findTaskByName(p,name){
+  const n=String(name||"").toLowerCase();
+  return p.tasks.find(t=>t.name.toLowerCase()===n)||p.tasks.find(t=>t.name.toLowerCase().includes(n))||null;
+}
+$("importBtn").onclick=()=>{ $("impText").value=""; $("impResult").textContent=""; $("impBg").classList.add("open"); };
+$("impCancel").onclick=()=>$("impBg").classList.remove("open");
+$("impApply").onclick=()=>{
+  let data;
+  try{ data=JSON.parse($("impText").value); }catch(e){ $("impResult").textContent="Invalid JSON: "+e.message; return; }
+  const ups=Array.isArray(data)?data:(data.updates||[]);
+  const ok=[], skip=[];
+  ups.forEach((u,i)=>{
+    const tag="#"+(i+1)+": ";
+    const p=findProjByName(u.project);
+    if(!p){ skip.push(tag+"project not found — "+u.project); return; }
+    if(u.headline!=null){ p.headline=String(u.headline); ok.push(tag+"headline updated ("+p.name+")"); return; }
+    if(u.addTask){
+      const a=u.addTask;
+      if(!a.name||!a.start){ skip.push(tag+"addTask needs name + start"); return; }
+      p.tasks.push({id:"t"+Date.now()+i, phase:a.phase||"General", name:a.name, owner:a.owner||"", start:a.start,
+        end:a.ms?a.start:(a.end||a.start), ms:!!a.ms, status:["ns","ip","done","risk"].includes(a.status)?a.status:"ns",
+        notes:a.notes||"", bStart:a.start, bEnd:a.end||a.start});
+      ok.push(tag+"added — "+a.name); return;
+    }
+    const t=findTaskByName(p,u.task);
+    if(!t){ skip.push(tag+"task not found — "+u.task); return; }
+    if(u.status){
+      if(["ns","ip","done","risk"].includes(u.status)){ t.status=u.status; ok.push(tag+t.name+" → "+SLBL[u.status]); }
+      else skip.push(tag+"bad status "+u.status);
+    }
+    if(u.start){ t.start=u.start; if(t.ms)t.end=u.start; ok.push(tag+t.name+" start → "+u.start); }
+    if(u.end&&!t.ms){ t.end=u.end; ok.push(tag+t.name+" end → "+u.end); }
+    if(u.note){ t.notes=(t.notes?t.notes+"\n":"")+u.note; ok.push(tag+"note added — "+t.name); }
+  });
+  save(); render();
+  $("impResult").textContent="Applied "+ok.length+", skipped "+skip.length+(ok.length||skip.length?"\n"+ok.concat(skip).join("\n"):"");
+};
+[["editBg"],["slideBg"],["projBg"],["impBg"]].forEach(([id])=>{ $(id).addEventListener("click",e=>{ if(e.target.id===id)$(id).classList.remove("open"); }); });
 window.addEventListener("resize",()=>render());
 syncHeadline(); render();
 </script>
