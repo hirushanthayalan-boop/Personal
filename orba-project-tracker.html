@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORBA Project Tracker</title>
+<style>
+:root { color-scheme: light;
+  --blue:#100063; --red:#D0021B; --mblue:#8092B7; --lblue:#DFE4ED; --dgrey:#5B5B5B; --lgrey:#F1F1F1;
+  --ink:#010101; --line:#DFE4ED;
+  --done:#100063; --ip:#8092B7; --ns:#CBD3E3; --risk:#D0021B;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; background:#fff; color:var(--ink); font-size:13px; padding:18px 20px;}
+h1{font-size:19px; display:flex; align-items:center; gap:10px;}
+h1::before{content:""; width:24px; height:3px; background:var(--red);}
+.sub{color:var(--dgrey); font-size:12px; margin-top:4px; margin-left:34px;}
+.topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+.topbtns{display:flex; gap:8px;}
+button{font-family:inherit; font-size:12.5px; border-radius:4px; border:1px solid var(--line); background:#fff; padding:7px 14px; cursor:pointer; color:var(--ink);}
+button:hover{border-color:var(--blue);}
+button.primary{background:var(--blue); color:#fff; border-color:var(--blue);}
+button.danger{color:var(--risk); border-color:#f0c4c9;}
+.tabs{display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; align-items:center;}
+.tab{padding:7px 16px; border-radius:999px; border:1px solid var(--line); cursor:pointer; font-size:12.5px; background:#fff; display:flex; gap:8px; align-items:center;}
+.tab:hover{border-color:var(--blue);}
+.tab.active{background:var(--blue); color:#fff; border-color:var(--blue); font-weight:bold;}
+.tab .tdot{width:8px; height:8px; border-radius:50%;}
+.tab.addtab{color:var(--dgrey); border-style:dashed;}
+.gear{padding:7px 10px; border-radius:999px;}
+.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;}
+.kpi{border:1px solid var(--line); border-radius:6px; padding:12px 16px; box-shadow:0 1px 3px rgba(16,0,99,.07);}
+.kpi .v{font-size:24px; font-weight:bold; color:var(--blue); margin-top:3px;}
+.kpi .l{color:var(--dgrey); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em;}
+.kpi .s{font-size:11.5px; color:var(--dgrey); margin-top:3px;}
+.pill{display:inline-block; padding:5px 14px; border-radius:999px; font-weight:bold; font-size:12px; color:#fff; align-self:center;}
+.headline{border:1px solid var(--line); border-radius:6px; padding:11px 16px; margin-bottom:14px; display:flex; gap:10px; align-items:center; box-shadow:0 1px 3px rgba(16,0,99,.07);}
+.headline label{font-weight:bold; color:var(--blue); white-space:nowrap; font-size:12px;}
+.headline input{flex:1; border:none; outline:none; font-family:inherit; font-size:13px; background:transparent;}
+.gwrap{border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:12px; box-shadow:0 1px 3px rgba(16,0,99,.07);}
+.gtitle{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
+.gtitle b{font-size:13.5px;}
+.legend{display:flex; gap:14px; font-size:11.5px; color:var(--dgrey); flex-wrap:wrap;}
+.lg{display:flex; align-items:center; gap:5px;}
+.dot{width:10px; height:10px; border-radius:2px; display:inline-block;}
+.gantt{display:flex;}
+.gnames{width:300px; min-width:300px; border-right:1px solid var(--line);}
+.gchart{flex:1; overflow-x:auto; position:relative;}
+.gchart-inner{position:relative;}
+.mrow{display:flex; border-bottom:1px solid var(--line); position:relative; height:24px;}
+.mcell{position:absolute; top:0; height:24px; font-size:11px; font-weight:bold; color:var(--blue); display:flex; align-items:center; padding-left:6px; border-left:1px solid var(--line);}
+.nrow{height:34px; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid var(--lgrey); font-size:12.5px; gap:6px; cursor:pointer;}
+.nrow:hover{background:#f6f8fb;}
+.nrow .own{margin-left:auto; color:var(--dgrey); font-size:11px; white-space:nowrap;}
+.nrow .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.phrow{height:26px; display:flex; align-items:center; padding:0 10px; background:var(--lblue); font-weight:bold; font-size:11px; color:var(--blue); border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:.05em;}
+.phadd{margin-left:auto; cursor:pointer; font-weight:bold; font-size:14px; color:var(--blue); padding:0 6px; border-radius:3px; line-height:1;}
+.phadd:hover{background:#fff;}
+.trow{position:absolute; left:0; right:0; border-bottom:1px solid var(--lgrey);}
+.tphase{position:absolute; left:0; right:0; background:var(--lblue); border-bottom:1px solid var(--line);}
+.bar{position:absolute; height:18px; border-radius:3px; cursor:grab; touch-action:none;}
+.bar:active{cursor:grabbing;}
+.bar .h{position:absolute; top:0; width:8px; height:100%; cursor:ew-resize;}
+.bar .hl{left:0;} .bar .hr{right:0;}
+.bar .dlab{position:absolute; left:100%; margin-left:6px; top:1px; font-size:10.5px; color:var(--dgrey); white-space:nowrap; pointer-events:none;}
+.ms{position:absolute; width:14px; height:14px; transform:rotate(45deg); cursor:grab; touch-action:none; border-radius:2px;}
+.todayline{position:absolute; top:0; bottom:0; width:0; border-left:2px dashed var(--red); z-index:5; pointer-events:none;}
+.todaytag{position:absolute; font-size:10px; color:var(--red); background:#fff; padding:0 3px; z-index:6; pointer-events:none;}
+.wk{position:absolute; top:0; bottom:0; border-left:1px solid #f4f6f9; pointer-events:none;}
+.mo{position:absolute; top:0; bottom:0; border-left:1px solid var(--line); pointer-events:none;}
+.sdot{width:9px; height:9px; border-radius:50%; display:inline-block; flex:none;}
+.notesflag{font-size:10px; color:var(--dgrey);}
+.modal-bg{position:fixed; inset:0; background:rgba(16,0,99,.35); display:none; align-items:center; justify-content:center; z-index:50;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff; border-radius:8px; padding:18px; width:440px; max-width:94vw; max-height:92vh; overflow:auto;}
+.modal h2{font-size:15px; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+.modal h2::before{content:""; width:18px; height:3px; background:var(--red);}
+.frow{margin-bottom:10px;}
+.frow label{display:block; font-size:11px; color:var(--dgrey); margin-bottom:3px; font-weight:bold; text-transform:uppercase; letter-spacing:.04em;}
+.frow input,.frow select,.frow textarea{width:100%; font-family:inherit; font-size:13px; padding:7px 8px; border:1px solid var(--line); border-radius:4px; outline:none;}
+.frow textarea{resize:vertical; min-height:60px;}
+.frow input:focus,.frow select:focus,.frow textarea:focus{border-color:var(--blue);}
+.f2{display:flex; gap:10px;} .f2 .frow{flex:1;}
+.mbtns{display:flex; gap:8px; justify-content:flex-end; margin-top:14px;}
+.slide-modal{width:1020px; max-width:96vw;}
+#slidebox{border:1px solid var(--line); overflow:auto;}
+#slidebox svg{display:block; width:100%; height:auto;}
+.footer{color:var(--dgrey); font-size:11px; display:flex; justify-content:space-between; padding:0 2px;}
+.footer a{color:var(--dgrey); cursor:pointer; text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <h1>ORBA Project Tracker</h1>
+    <div class="sub">Drag bars to move, drag edges to change duration, click any row to edit or add notes. Changes save automatically.</div>
+  </div>
+  <div class="topbtns">
+    <span id="overallPill" class="pill" style="background:var(--blue);">On track</span>
+    <button id="slideBtn">Project slide</button>
+    <button id="portBtn" class="primary">Portfolio slide — all projects</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">Progress</div><div class="v" id="kProg">—</div><div class="s" id="kProgS"></div></div>
+  <div class="kpi"><div class="l">Milestones</div><div class="v" id="kMs">—</div><div class="s" id="kMsS"></div></div>
+  <div class="kpi"><div class="l">At risk</div><div class="v" id="kRisk">—</div><div class="s" id="kRiskS"></div></div>
+  <div class="kpi"><div class="l">Next milestone</div><div class="v" id="kNext">—</div><div class="s" id="kNextS"></div></div>
+</div>
+
+<div class="headline">
+  <label>This period's headline</label>
+  <input id="headline" placeholder="One sentence — the 'so what' that leads the status slide">
+</div>
+
+<div class="gwrap">
+  <div class="gtitle">
+    <b id="gtimeTitle">Timeline</b>
+    <div class="legend">
+      <span class="lg"><span class="dot" style="background:var(--ns)"></span>Not started</span>
+      <span class="lg"><span class="dot" style="background:var(--ip)"></span>In progress</span>
+      <span class="lg"><span class="dot" style="background:var(--done)"></span>Done</span>
+      <span class="lg"><span class="dot" style="background:var(--risk)"></span>At risk</span>
+      <span class="lg"><span class="dot" style="background:var(--blue); transform:rotate(45deg)"></span>Milestone</span>
+    </div>
+  </div>
+  <div class="gantt">
+    <div class="gnames" id="gnames"></div>
+    <div class="gchart" id="gchart"><div class="gchart-inner" id="ginner"></div></div>
+  </div>
+</div>
+
+<div style="display:flex; gap:8px; margin-bottom:14px;">
+  <button id="addBtn">+ Add item</button>
+  <button id="addPhaseBtn">+ New phase</button>
+</div>
+
+<div class="footer">
+  <span>State saves locally in this view. Milestone dates vs. baseline appear on status slides.</span>
+  <a id="resetBtn">Reset current project to baseline</a>
+</div>
+
+<div class="modal-bg" id="editBg">
+  <div class="modal">
+    <h2 id="emTitle">Edit item</h2>
+    <div class="frow"><label>Name</label><input id="eName"></div>
+    <div class="f2">
+      <div class="frow"><label>Phase / workstream</label><input id="ePhase" list="phaseList"><datalist id="phaseList"></datalist></div>
+      <div class="frow"><label>Owner</label><input id="eOwner"></div>
+    </div>
+    <div class="f2">
+      <div class="frow"><label>Start</label><input type="date" id="eStart"></div>
+      <div class="frow"><label>End</label><input type="date" id="eEnd"></div>
+    </div>
+    <div class="f2">
+      <div class="frow"><label>Status</label><select id="eStatus">
+        <option value="ns">Not started</option><option value="ip">In progress</option>
+        <option value="done">Done</option><option value="risk">At risk</option></select></div>
+      <div class="frow"><label>Milestone</label><select id="eMs"><option value="0">No</option><option value="1">Yes</option></select></div>
+    </div>
+    <div class="frow"><label>Notes (at-risk notes appear on the status slide)</label><textarea id="eNotes"></textarea></div>
+    <div class="mbtns">
+      <button class="danger" id="eDelete">Delete</button>
+      <span style="flex:1"></span>
+      <button id="eCancel">Cancel</button>
+      <button class="primary" id="eSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="projBg">
+  <div class="modal">
+    <h2 id="pmTitle">Project settings</h2>
+    <div class="frow"><label>Project name</label><input id="pName"></div>
+    <div class="frow"><label>Subtitle (shown on slides, e.g. key deadline or publication)</label><input id="pSub"></div>
+    <div class="mbtns">
+      <button class="danger" id="pDelete">Delete project</button>
+      <span style="flex:1"></span>
+      <button id="pCancel">Cancel</button>
+      <button class="primary" id="pSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="slideBg">
+  <div class="modal slide-modal">
+    <h2 id="smTitle">Status slide</h2>
+    <div id="slidebox"></div>
+    <div class="mbtns">
+      <button id="sCopy">Copy text summary</button>
+      <button id="sPng" class="primary">Download PNG</button>
+      <button id="sClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const KEY="gdi-pm-suite-v1", OLDKEY="orba-3ys-tracker-v1";
+const SCOL={ns:"#CBD3E3",ip:"#8092B7",done:"#100063",risk:"#D0021B"};
+const SLBL={ns:"Not started",ip:"In progress",done:"Done",risk:"At risk"};
+const BLUE="#100063", RED="#D0021B", MBLUE="#8092B7", LBLUE="#DFE4ED", DGREY="#5B5B5B", INK="#010101";
+const DAY=864e5, ROWH=34, PH=26, HDR=24;
+
+function mk(arr){ return arr.map((s,i)=>({id:"t"+i+"_"+s[1].length, phase:s[0], name:s[1], owner:s[2],
+  start:s[3], end:s[5]?s[3]:s[4], ms:!!s[5], status:s[6]||"ns", notes:"", bStart:s[3], bEnd:s[4]})); }
+
+const seedOrba=[
+["Setup","Finalize project plan, circulate to Justin","Hiru","2026-06-15","2026-06-19",0],
+["Setup","Lock calendar holds (kickoff, sessions, workshop, symposium)","Hiru","2026-06-15","2026-06-26",0],
+["Setup","Budget skeleton","Hiru","2026-06-22","2026-07-03",0],
+["Setup","Team kickoff","Team","2026-07-06","2026-07-10",1],
+["Setup","Write one-page 'done' spec for first draft","Esther","2026-07-06","2026-07-17",0],
+["Setup","October workshop invite list (law community)","Esther","2026-07-13","2026-07-24",0],
+["Setup","Workshop + symposium logistics","Hiru","2026-07-20","2026-08-28",0],
+["Thesis development","Build session 1 - outline + thesis direction","Esther + Justin","2026-08-03","2026-08-07",1],
+["Thesis development","First-draft writing","Esther","2026-08-03","2026-09-25",0],
+["Thesis development","Build session 2 - full draft review","Esther + Justin","2026-09-14","2026-09-18",1],
+["Thesis development","First draft complete","Esther","2026-09-21","2026-09-25",1],
+["Thesis development","Prep readout materials","Esther + Hiru","2026-09-21","2026-10-09",0],
+["Refinement","Interim readout workshop with experts","Justin anchors","2026-10-12","2026-10-16",1],
+["Refinement","Synthesize workshop input, revise draft","Esther","2026-10-12","2026-10-30",0],
+["Refinement","External partner feedback (L4BL, M4BL, Lambda)","Esther","2026-10-26","2026-11-13",0],
+["Refinement","Incorporate feedback","Esther","2026-11-09","2026-11-27",0],
+["Refinement","Final draft","Esther","2026-11-23","2026-11-27",1],
+["Finalize + publish","Production + distribution prep","Hiru","2026-11-16","2026-12-04",0],
+["Finalize + publish","Symposium workshop session design","Esther","2026-11-16","2026-12-04",0],
+["Finalize + publish","Symposium workshop + publication","Team","2026-12-07","2026-12-11",1]];
+
+const seedRR=[
+["Setup","Align scope boundary + bench model with Esther","Hiru","2026-06-15","2026-06-26",0],
+["Setup","Draft activation protocol (one page)","Hiru","2026-06-22","2026-07-10",0],
+["Setup","Agree reserved capacity (Justin + Esther)","Esther","2026-07-06","2026-07-17",0],
+["Setup","Knowledge product template","Hiru","2026-07-13","2026-07-24",0],
+["Operating","First quarterly sensing session","Team","2026-09-08","2026-09-11",1],
+["Operating","Second quarterly sensing session","Team","2026-12-14","2026-12-18",1]];
+
+const seedNew=[
+["Phase 1","Placeholder task — click to edit","Owner","2026-07-06","2026-07-17",0],
+["Phase 1","Placeholder milestone","Owner","2026-07-31","2026-07-31",1]];
+
+function freshProject(id,name,sub,seed){ return {id, name, sub, headline:"", tasks:mk(seed)}; }
+function freshSuite(){
+  return {v:2, activeId:"orba", projects:[
+    freshProject("orba","ORBA 3-Year Legal Strategy","Publication: First Repair National Symposium, December 2026",seedOrba),
+    freshProject("rr","ORBA Rapid Response","Operating model live by first quarterly session, September 2026",seedRR),
+  ]};
+}
+let state;
+try{
+  state=JSON.parse(localStorage.getItem(KEY));
+  if(!state||state.v!==2){
+    state=freshSuite();
+    const old=JSON.parse(localStorage.getItem(OLDKEY));
+    if(old&&old.tasks){ state.projects[0].tasks=old.tasks; state.projects[0].headline=old.headline||""; }
+    save();
+  }
+}catch(e){ state=freshSuite(); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+// one-time restore: re-add any baseline items missing from seeded projects (recovers accidental deletes)
+if(!state.fix1){
+  [["orba",seedOrba],["rr",seedRR]].forEach(([pid,sd])=>{
+    const p=state.projects.find(x=>x.id===pid); if(!p)return;
+    mk(sd).forEach(st=>{
+      if(!p.tasks.some(t=>t.name===st.name)){
+        st.id="r"+Date.now()+Math.random().toString(36).slice(2,6);
+        let idx=-1; p.tasks.forEach((t,i)=>{ if(t.phase===st.phase)idx=i; });
+        if(idx>=0)p.tasks.splice(idx+1,0,st); else p.tasks.push(st);
+      }
+    });
+  });
+  state.fix1=true; save();
+}
+function proj(){ return state.projects.find(p=>p.id===state.activeId)||state.projects[0]; }
+function phases(p){ const out=[]; p.tasks.forEach(t=>{ if(!out.includes(t.phase))out.push(t.phase); }); return out; }
+
+const pd=s=>{const a=s.split("-");return new Date(+a[0],+a[1]-1,+a[2]);};
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const fmt=s=>pd(s).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+let T0=new Date(2026,5,8), T1=new Date(2026,11,31), NDAYS=200, ppd=6;
+function calcRange(p){
+  if(!p.tasks.length){ T0=new Date(2026,5,8); T1=new Date(2026,11,31); }
+  else{
+    let mn=Math.min(...p.tasks.map(t=>+pd(t.start))), mx=Math.max(...p.tasks.map(t=>+pd(t.end)));
+    let s=new Date(mn-10*DAY); s.setDate(s.getDate()-((s.getDay()+6)%7));
+    T0=s; T1=new Date(mx+21*DAY);
+  }
+  NDAYS=Math.round((T1-T0)/DAY)+1;
+}
+const dayIdx=s=>Math.round((pd(s)-T0)/DAY);
+const clampD=d=>new Date(Math.min(Math.max(d,T0),T1));
+
+function rows(){
+  const p=proj(), out=[];
+  phases(p).forEach(ph=>{
+    out.push({type:"p",name:ph});
+    p.tasks.filter(t=>t.phase===ph).forEach(t=>out.push({type:"t",t}));
+  });
+  return out;
+}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+
+function projHealth(p){
+  const ms=p.tasks.filter(t=>t.ms), risk=p.tasks.filter(t=>t.status==="risk");
+  if(ms.some(t=>t.status==="risk"))return ["Off track",RED,"solid"];
+  if(risk.length)return ["Needs attention",RED,"outline"];
+  return ["On track",BLUE,"solid"];
+}
+
+function renderTabs(){
+  const el=document.getElementById("tabs");
+  let h="";
+  state.projects.forEach(p=>{
+    const hl=projHealth(p);
+    h+='<div class="tab'+(p.id===state.activeId?" active":"")+'" data-id="'+p.id+'">'+
+      '<span class="tdot" style="background:'+(p.id===state.activeId?"#fff":hl[1])+'"></span>'+esc(p.name)+'</div>';
+  });
+  h+='<div class="tab addtab" id="newProjTab">+ New project</div>';
+  h+='<button class="gear" id="gearBtn" title="Project settings">⚙</button>';
+  el.innerHTML=h;
+  el.querySelectorAll(".tab[data-id]").forEach(t=>t.addEventListener("click",()=>{
+    state.activeId=t.dataset.id; save(); syncHeadline(); render();
+  }));
+  document.getElementById("newProjTab").addEventListener("click",()=>openProj(true));
+  document.getElementById("gearBtn").addEventListener("click",()=>openProj(false));
+}
+function syncHeadline(){ document.getElementById("headline").value=proj().headline||""; }
+
+function render(){
+  renderTabs();
+  const p=proj();
+  calcRange(p);
+  document.getElementById("gtimeTitle").textContent="Timeline — "+
+    T0.toLocaleDateString("en-US",{month:"short",year:"numeric"})+" to "+T1.toLocaleDateString("en-US",{month:"short",year:"numeric"});
+  const gn=document.getElementById("gnames"), gc=document.getElementById("gchart"), gi=document.getElementById("ginner");
+  const avail=gc.clientWidth||800;
+  ppd=Math.max(4.2, avail/NDAYS);
+  const W=Math.round(NDAYS*ppd);
+  const R=rows();
+  let totalH=HDR;
+  let nh='<div class="mrow"></div>';
+  R.forEach(r=>{
+    if(r.type==="p"){ nh+='<div class="phrow">'+esc(r.name)+'<span class="phadd" data-ph="'+esc(r.name)+'" title="Add item to '+esc(r.name)+'">+</span></div>'; totalH+=PH; }
+    else{
+      const t=r.t;
+      nh+='<div class="nrow" data-id="'+t.id+'"><span class="sdot" style="background:'+SCOL[t.status]+'"></span>'+
+        (t.ms?'<b class="nm">◆ '+esc(t.name)+'</b>':'<span class="nm">'+esc(t.name)+'</span>')+
+        (t.notes?'<span class="notesflag">✎</span>':"")+'<span class="own">'+esc(t.owner)+'</span></div>';
+      totalH+=ROWH;
+    }
+  });
+  gn.innerHTML=nh;
+  gi.style.width=W+"px"; gi.style.height=totalH+"px";
+  let ch='<div class="mrow" style="width:'+W+'px">';
+  let m=new Date(T0);
+  while(m<=T1){
+    const ms=new Date(m.getFullYear(),m.getMonth(),1), me=new Date(m.getFullYear(),m.getMonth()+1,0);
+    const x=Math.max(0,Math.round((ms-T0)/DAY)*ppd), x2=Math.min(W,(Math.round((me-T0)/DAY)+1)*ppd);
+    if(x2>x+20)ch+='<div class="mcell" style="left:'+x+'px; width:'+(x2-x)+'px">'+ms.toLocaleDateString("en-US",{month:"short"})+'</div>';
+    m=new Date(m.getFullYear(),m.getMonth()+1,1);
+  }
+  ch+='</div>';
+  for(let d=0;d<NDAYS;d+=7) ch+='<div class="wk" style="left:'+Math.round(d*ppd)+'px"></div>';
+  m=new Date(T0);
+  while(m<=T1){ const f=new Date(m.getFullYear(),m.getMonth(),1);
+    if(f>=T0) ch+='<div class="mo" style="left:'+Math.round((f-T0)/DAY*ppd)+'px"></div>';
+    m=new Date(m.getFullYear(),m.getMonth()+1,1); }
+  let y=HDR;
+  R.forEach(r=>{
+    if(r.type==="p"){ ch+='<div class="tphase" style="top:'+y+'px; height:'+PH+'px"></div>'; y+=PH; }
+    else{
+      const t=r.t;
+      ch+='<div class="trow" style="top:'+y+'px; height:'+ROWH+'px"></div>';
+      const x=dayIdx(t.start)*ppd;
+      if(t.ms){
+        ch+='<div class="ms" data-id="'+t.id+'" style="left:'+(x-7+ppd/2)+'px; top:'+(y+10)+'px; background:'+SCOL[t.status==="ns"?"ip":t.status]+'"></div>'+
+        '<div style="position:absolute; left:'+(x+14)+'px; top:'+(y+9)+'px; font-size:10.5px; color:var(--dgrey); pointer-events:none">'+fmt(t.start)+'</div>';
+      }else{
+        const w=Math.max(ppd,(dayIdx(t.end)-dayIdx(t.start)+1)*ppd);
+        ch+='<div class="bar" data-id="'+t.id+'" style="left:'+x+'px; top:'+(y+8)+'px; width:'+w+'px; background:'+SCOL[t.status]+'">'+
+        '<div class="h hl"></div><div class="h hr"></div><div class="dlab">'+fmt(t.start)+' – '+fmt(t.end)+'</div></div>';
+      }
+      y+=ROWH;
+    }
+  });
+  const now=new Date();
+  if(now>=T0&&now<=T1){
+    const tx=Math.round((now-T0)/DAY*ppd);
+    ch+='<div class="todayline" style="left:'+tx+'px"></div><div class="todaytag" style="left:'+(tx+3)+'px; top:'+(HDR+2)+'px">today</div>';
+  }
+  gi.innerHTML=ch;
+  bindDrag(); bindRows(); renderKpis();
+}
+
+function renderKpis(){
+  const p=proj(), ts=p.tasks, done=ts.filter(t=>t.status==="done").length;
+  const ms=ts.filter(t=>t.ms), msd=ms.filter(t=>t.status==="done").length;
+  const risk=ts.filter(t=>t.status==="risk");
+  document.getElementById("kProg").textContent=Math.round(done/Math.max(1,ts.length)*100)+"%";
+  document.getElementById("kProgS").textContent=done+" of "+ts.length+" items complete";
+  document.getElementById("kMs").textContent=msd+" / "+ms.length;
+  document.getElementById("kMsS").textContent="milestones complete";
+  document.getElementById("kRisk").textContent=risk.length;
+  document.getElementById("kRiskS").textContent=risk.length?risk.map(t=>t.name).join("; ").slice(0,60):"nothing flagged";
+  const now=new Date(); now.setHours(0,0,0,0);
+  const up=ms.filter(t=>t.status!=="done"&&pd(t.start)>=now).sort((a,b)=>pd(a.start)-pd(b.start))[0];
+  if(up){ const dd=Math.round((pd(up.start)-now)/DAY);
+    document.getElementById("kNext").textContent=dd+"d";
+    document.getElementById("kNextS").textContent=up.name+" ("+fmt(up.start)+")";
+  } else { document.getElementById("kNext").textContent="—"; document.getElementById("kNextS").textContent="no upcoming milestones"; }
+  const pill=document.getElementById("overallPill");
+  const hl=projHealth(p);
+  pill.textContent=hl[0];
+  pill.style.cssText=hl[2]==="outline"?"background:#fff; color:"+RED+"; border:1.5px solid "+RED+";":"background:"+hl[1]+"; color:#fff;";
+}
+
+// ---- drag ----
+let drag=null;
+function bindDrag(){
+  document.querySelectorAll(".bar,.ms").forEach(el=>{
+    el.addEventListener("pointerdown",e=>{
+      const t=proj().tasks.find(x=>x.id===el.dataset.id); if(!t)return;
+      let mode="move";
+      if(el.classList.contains("bar")){
+        if(e.target.classList.contains("hl"))mode="l";
+        else if(e.target.classList.contains("hr"))mode="r";
+      }
+      drag={t,el,mode,x0:e.clientX,s0:pd(t.start),e0:pd(t.end),moved:false};
+      el.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    el.addEventListener("pointermove",e=>{
+      if(!drag||drag.el!==el)return;
+      const dd=Math.round((e.clientX-drag.x0)/ppd);
+      if(dd!==0)drag.moved=true;
+      const t=drag.t;
+      let s=new Date(drag.s0), en=new Date(drag.e0);
+      if(drag.mode==="move"){ s=new Date(+drag.s0+dd*DAY); en=new Date(+drag.e0+dd*DAY); }
+      else if(drag.mode==="l"){ s=new Date(+drag.s0+dd*DAY); if(s>en)s=en; }
+      else { en=new Date(+drag.e0+dd*DAY); if(en<s)en=s; }
+      s=clampD(s); en=clampD(en);
+      t.start=iso(s); t.end=t.ms?t.start:iso(en);
+      const x=dayIdx(t.start)*ppd;
+      if(t.ms){ el.style.left=(x-7+ppd/2)+"px"; }
+      else{
+        el.style.left=x+"px";
+        el.style.width=Math.max(ppd,(dayIdx(t.end)-dayIdx(t.start)+1)*ppd)+"px";
+        el.querySelector(".dlab").textContent=fmt(t.start)+" – "+fmt(t.end);
+      }
+    });
+    el.addEventListener("pointerup",e=>{
+      if(!drag||drag.el!==el)return;
+      const wasMoved=drag.moved, t=drag.t; drag=null;
+      if(wasMoved){ save(); render(); }
+      else openEdit(t.id);
+    });
+  });
+}
+function bindRows(){
+  document.querySelectorAll(".nrow").forEach(el=>el.addEventListener("click",()=>openEdit(el.dataset.id)));
+  document.querySelectorAll(".phadd").forEach(el=>el.addEventListener("click",e=>{ e.stopPropagation(); openEdit(null,el.dataset.ph); }));
+}
+
+// ---- edit modal ----
+let editId=null;
+const $=id=>document.getElementById(id);
+function openEdit(id, presetPhase){
+  editId=id;
+  const p=proj(), t=id?p.tasks.find(x=>x.id===id):null;
+  const dl=$("phaseList"); dl.innerHTML="";
+  phases(p).concat(["Setup","Build","Refinement","Close"]).filter((v,i,a)=>a.indexOf(v)===i)
+    .forEach(ph=>{const o=document.createElement("option");o.value=ph;dl.appendChild(o);});
+  $("emTitle").textContent=t?"Edit item":(presetPhase===""?"Add item in a new phase":"Add item"+(presetPhase?" — "+presetPhase:""));
+  $("eName").value=t?t.name:"";
+  $("ePhase").value=t?t.phase:(presetPhase!=null?presetPhase:(phases(p)[0]||"Phase 1"));
+  $("eOwner").value=t?t.owner:"";
+  $("eStart").value=t?t.start:iso(new Date());
+  $("eEnd").value=t?t.end:iso(new Date(Date.now()+4*DAY));
+  $("eStatus").value=t?t.status:"ns";
+  $("eMs").value=t&&t.ms?"1":"0";
+  $("eNotes").value=t?t.notes:"";
+  $("eDelete").style.display=t?"":"none";
+  $("editBg").classList.add("open");
+}
+$("eSave").onclick=()=>{
+  const name=$("eName").value.trim(); if(!name)return;
+  const p=proj();
+  let s=$("eStart").value, e=$("eEnd").value;
+  if(!s)s=iso(new Date()); if(!e||pd(e)<pd(s))e=s;
+  const ph=$("ePhase").value.trim()||"General";
+  if(editId){
+    const t=p.tasks.find(x=>x.id===editId);
+    Object.assign(t,{name, phase:ph, owner:$("eOwner").value, start:s,
+      end:$("eMs").value==="1"?s:e, status:$("eStatus").value, ms:$("eMs").value==="1", notes:$("eNotes").value});
+  }else{
+    p.tasks.push({id:"t"+Date.now(), name, phase:ph, owner:$("eOwner").value,
+      start:s, end:$("eMs").value==="1"?s:e, status:$("eStatus").value, ms:$("eMs").value==="1",
+      notes:$("eNotes").value, bStart:s, bEnd:e});
+  }
+  save(); $("editBg").classList.remove("open"); render();
+};
+$("eCancel").onclick=()=>$("editBg").classList.remove("open");
+$("eDelete").onclick=()=>{
+  const p=proj(); p.tasks=p.tasks.filter(x=>x.id!==editId);
+  save(); $("editBg").classList.remove("open"); render();
+};
+$("addBtn").onclick=()=>openEdit(null);
+$("addPhaseBtn").onclick=()=>{ openEdit(null,""); $("ePhase").placeholder="Type the new phase name"; setTimeout(()=>$("ePhase").focus(),50); };
+$("resetBtn").onclick=()=>{
+  const p=proj();
+  if(!confirm("Reset '"+p.name+"' to its baseline plan? (Only ORBA Strategy and Rapid Response have baselines; others reset to placeholders.)"))return;
+  if(p.id==="orba"){ p.tasks=mk(seedOrba); p.headline=""; }
+  else if(p.id==="rr"){ p.tasks=mk(seedRR); p.headline=""; }
+  else { p.tasks=mk(seedNew); p.headline=""; }
+  save(); syncHeadline(); render();
+};
+$("headline").addEventListener("input",()=>{ proj().headline=$("headline").value; save(); });
+
+// ---- project settings ----
+let projMode="edit";
+function openProj(isNew){
+  projMode=isNew?"new":"edit";
+  $("pmTitle").textContent=isNew?"New project":"Project settings";
+  $("pName").value=isNew?"":proj().name;
+  $("pSub").value=isNew?"":(proj().sub||"");
+  $("pDelete").style.display=(!isNew&&state.projects.length>1)?"":"none";
+  $("projBg").classList.add("open");
+}
+$("pSave").onclick=()=>{
+  const name=$("pName").value.trim(); if(!name)return;
+  if(projMode==="new"){
+    const id="p"+Date.now();
+    state.projects.push({id, name, sub:$("pSub").value.trim(), headline:"", tasks:mk(seedNew)});
+    state.activeId=id;
+  }else{
+    proj().name=name; proj().sub=$("pSub").value.trim();
+  }
+  save(); $("projBg").classList.remove("open"); syncHeadline(); render();
+};
+$("pCancel").onclick=()=>$("projBg").classList.remove("open");
+$("pDelete").onclick=()=>{
+  if(!confirm("Delete project '"+proj().name+"' and all its items?"))return;
+  state.projects=state.projects.filter(p=>p.id!==state.activeId);
+  state.activeId=state.projects[0].id;
+  save(); $("projBg").classList.remove("open"); syncHeadline(); render();
+};
+
+// ---- slides ----
+let slideMode="one";
+function wrapTxt(s,n){
+  const w=s.split(" "), out=[]; let cur="";
+  w.forEach(x=>{ if((cur+" "+x).trim().length>n){ out.push(cur.trim()); cur=x; } else cur+=" "+x; });
+  if(cur.trim())out.push(cur.trim()); return out;
+}
+function escX(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function card(x,y,w,h){
+  return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="6" fill="#ffffff" stroke="'+LBLUE+'" stroke-width="1" filter="url(#shadow)"/>';
+}
+function secHdr(x,y,label,color){
+  return '<rect x="'+x+'" y="'+(y-11)+'" width="18" height="3" fill="'+RED+'"/>'+
+    '<text x="'+(x+26)+'" y="'+y+'" font-size="14" font-weight="bold" fill="'+(color||BLUE)+'" letter-spacing="1">'+label+'</text>';
+}
+function svgOpen(){
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Helvetica Neue,Helvetica,Arial,sans-serif">'+
+  '<defs><filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#100063" flood-opacity="0.10"/></filter></defs>'+
+  '<rect width="1280" height="720" fill="#ffffff"/>';
+}
+function svgClose(src){
+  return '<text x="50" y="704" font-size="10.5" fill="'+MBLUE+'">'+src+'</text>'+
+  '<polygon points="1280,720 1226,720 1280,666" fill="'+RED+'"/></svg>';
+}
+function chip(x,y,label,color,outline){
+  const w=Math.max(110,label.length*9+36);
+  return '<rect x="'+(x-w)+'" y="'+y+'" rx="16" width="'+w+'" height="32" fill="'+(outline?"#ffffff":color)+'" stroke="'+color+'" stroke-width="1.5"/>'+
+  '<text x="'+(x-w/2)+'" y="'+(y+21)+'" font-size="13" font-weight="bold" fill="'+(outline?color:"#ffffff")+'" text-anchor="middle" letter-spacing="1">'+label.toUpperCase()+'</text>';
+}
+
+function buildSlide(p){
+  const ts=p.tasks, ms=ts.filter(t=>t.ms).sort((a,b)=>pd(a.start)-pd(b.start)).slice(0,8);
+  const risk=ts.filter(t=>t.status==="risk");
+  const done=ts.filter(t=>t.status==="done");
+  const now=new Date(); now.setHours(0,0,0,0);
+  const soon=ts.filter(t=>t.status!=="done"&&pd(t.start)<=new Date(+now+14*DAY)&&pd(t.end)>=now).sort((a,b)=>pd(a.start)-pd(b.start));
+  const hl=projHealth(p);
+  const dstr=now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  const allms=ts.filter(t=>t.ms);
+  const lastMs=allms.length?allms.reduce((a,b)=>pd(a.start)>pd(b.start)?a:b):null;
+  const dts=lastMs?Math.max(0,Math.round((pd(lastMs.start)-now)/DAY)):0;
+  const pct=Math.round(done.length/Math.max(1,ts.length)*100);
+  const msd=allms.filter(t=>t.status==="done").length;
+  let s=svgOpen();
+  s+='<rect x="50" y="46" width="26" height="4" fill="'+RED+'"/>';
+  s+='<text x="88" y="56" font-size="25" font-weight="bold" fill="'+INK+'">'+escX(p.name)+' — Status Update</text>';
+  s+='<text x="88" y="80" font-size="13.5" fill="'+DGREY+'">'+dstr+(p.sub?'  ·  '+escX(p.sub):"")+'</text>';
+  s+=chip(1230,38,hl[0],hl[1],hl[2]==="outline");
+  const stats=[[pct+"%","complete"],[msd+" / "+allms.length,"milestones done"],[String(risk.length),"items at risk"],[dts+"d","to final milestone"]];
+  stats.forEach((st,i)=>{
+    const x=50+i*300;
+    s+='<text x="'+x+'" y="132" font-size="30" font-weight="bold" fill="'+BLUE+'">'+st[0]+'</text>';
+    s+='<line x1="'+(x+95)+'" y1="124" x2="'+(x+125)+'" y2="124" stroke="'+MBLUE+'" stroke-width="1.5"/>';
+    s+='<text x="'+(x+133)+'" y="129" font-size="12.5" fill="'+DGREY+'">'+st[1]+'</text>';
+  });
+  const hltxt=p.headline||"(Add a headline in the tracker — the one-sentence 'so what')";
+  const hlines=wrapTxt(hltxt,104).slice(0,2);
+  const hH=hlines.length*24+20;
+  s+=card(50,156,1180,hH);
+  hlines.forEach((l,i)=>{ s+='<text x="70" y="'+(182+i*24)+'" font-size="16" font-weight="bold" fill="'+INK+'">'+escX(l)+'</text>'; });
+  let topY=156+hH+38;
+  s+=secHdr(50,topY,"MILESTONES");
+  let y=topY+16;
+  if(!ms.length)s+='<text x="58" y="'+(y+16)+'" font-size="13" fill="'+DGREY+'">No milestones defined yet</text>';
+  ms.forEach(t=>{
+    const c=SCOL[t.status];
+    const slip=t.bStart&&t.bStart!==t.start?Math.round((pd(t.start)-pd(t.bStart))/DAY):0;
+    s+='<circle cx="58" cy="'+(y+11)+'" r="6" fill="'+c+'"/>';
+    s+='<text x="76" y="'+(y+16)+'" font-size="13.5" fill="'+INK+'">'+escX(t.name.length>44?t.name.slice(0,42)+"…":t.name)+'</text>';
+    s+='<text x="480" y="'+(y+16)+'" font-size="13" fill="'+DGREY+'">'+fmt(t.start)+(slip?(' <tspan fill="'+(slip>0?RED:BLUE)+'" font-weight="bold">('+(slip>0?"+":"")+slip+'d)</tspan>'):"")+'</text>';
+    s+='<text x="585" y="'+(y+16)+'" font-size="12" fill="'+(t.status==="risk"?RED:t.status==="done"?BLUE:DGREY)+'" font-weight="bold">'+SLBL[t.status]+'</text>';
+    y+=29;
+  });
+  s+=secHdr(720,topY,"PROGRESS BY PHASE");
+  let py=topY+20;
+  phases(p).slice(0,5).forEach(ph=>{
+    const pt=ts.filter(t=>t.phase===ph); if(!pt.length)return;
+    const d=pt.filter(t=>t.status==="done").length, pp=d/pt.length;
+    s+='<text x="720" y="'+(py+12)+'" font-size="13" fill="'+INK+'">'+escX(ph.length>26?ph.slice(0,24)+"…":ph)+'</text>';
+    s+='<rect x="930" y="'+py+'" width="240" height="13" rx="6.5" fill="'+LBLUE+'"/>';
+    if(pp>0)s+='<rect x="930" y="'+py+'" width="'+Math.max(13,240*pp)+'" height="13" rx="6.5" fill="'+BLUE+'"/>';
+    s+='<text x="1180" y="'+(py+11)+'" font-size="12" fill="'+DGREY+'">'+d+'/'+pt.length+'</text>';
+    py+=29;
+  });
+  py+=16;
+  s+=secHdr(720,py,"NEXT 14 DAYS"); py+=22;
+  (soon.slice(0,4).length?soon.slice(0,4):[{name:"No items in window",owner:""}]).forEach(t=>{
+    s+='<circle cx="725" cy="'+(py-4)+'" r="3" fill="'+MBLUE+'"/>';
+    s+='<text x="738" y="'+py+'" font-size="13" fill="'+INK+'">'+escX(t.name.length>50?t.name.slice(0,48)+"…":t.name)+(t.owner?' <tspan fill="'+DGREY+'">('+escX(t.owner)+')</tspan>':"")+'</text>'; py+=23;
+  });
+  const bandY=556, cardH=120;
+  s+=card(50,bandY,565,cardH);
+  s+=secHdr(70,bandY+28,"COMPLETED");
+  let cy=bandY+50;
+  (done.slice(-3).length?done.slice(-3):[{name:"None yet"}]).forEach(t=>{
+    s+='<text x="70" y="'+cy+'" font-size="12.5" fill="'+INK+'">✓ '+escX(t.name.length>56?t.name.slice(0,54)+"…":t.name)+'</text>'; cy+=21;
+  });
+  s+=card(640,bandY,590,cardH);
+  s+=secHdr(660,bandY+28,"RISKS &amp; ASKS",risk.length?RED:BLUE);
+  let ry=bandY+50;
+  if(!risk.length){ s+='<text x="660" y="'+ry+'" font-size="12.5" fill="'+DGREY+'">No items flagged at risk</text>'; }
+  else risk.slice(0,3).forEach(t=>{
+    const note=t.notes?(" — "+t.notes):"";
+    wrapTxt("• "+t.name+note,76).slice(0,2).forEach(l=>{ s+='<text x="660" y="'+ry+'" font-size="12.5" fill="'+INK+'">'+escX(l)+'</text>'; ry+=19; });
+    ry+=2;
+  });
+  s+=svgClose("Source: ORBA project tracker · "+escX(p.name));
+  return s;
+}
+
+function buildPortfolio(){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const dstr=now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  const ps=state.projects.slice(0,6);
+  const onTrack=ps.filter(p=>projHealth(p)[0]==="On track").length;
+  const attn=ps.length-onTrack;
+  const riskTotal=ps.reduce((a,p)=>a+p.tasks.filter(t=>t.status==="risk").length,0);
+  let s=svgOpen();
+  s+='<rect x="50" y="46" width="26" height="4" fill="'+RED+'"/>';
+  s+='<text x="88" y="56" font-size="25" font-weight="bold" fill="'+INK+'">ORBA Portfolio Status Update</text>';
+  s+='<text x="88" y="80" font-size="13.5" fill="'+DGREY+'">'+dstr+'  ·  '+ps.length+' active projects</text>';
+  const stats=[[String(ps.length),"projects"],[String(onTrack),"on track"],[String(attn),"need attention"],[String(riskTotal),"items at risk"]];
+  stats.forEach((st,i)=>{
+    const x=50+i*300;
+    s+='<text x="'+x+'" y="132" font-size="30" font-weight="bold" fill="'+BLUE+'">'+st[0]+'</text>';
+    s+='<line x1="'+(x+70)+'" y1="124" x2="'+(x+100)+'" y2="124" stroke="'+MBLUE+'" stroke-width="1.5"/>';
+    s+='<text x="'+(x+108)+'" y="129" font-size="12.5" fill="'+DGREY+'">'+st[1]+'</text>';
+  });
+  const top=168, rowH=Math.min(118,Math.floor(480/ps.length));
+  ps.forEach((p,i)=>{
+    const y=top+i*(rowH+10);
+    const ts=p.tasks, done=ts.filter(t=>t.status==="done").length;
+    const pct=Math.round(done/Math.max(1,ts.length)*100);
+    const ms=ts.filter(t=>t.ms), msd=ms.filter(t=>t.status==="done").length;
+    const risk=ts.filter(t=>t.status==="risk");
+    const hl=projHealth(p);
+    const up=ms.filter(t=>t.status!=="done"&&pd(t.start)>=now).sort((a,b)=>pd(a.start)-pd(b.start))[0];
+    s+=card(50,y,1180,rowH);
+    s+='<text x="74" y="'+(y+30)+'" font-size="16" font-weight="bold" fill="'+INK+'">'+escX(p.name)+'</text>';
+    s+=chip(1206,y+12,hl[0],hl[1],hl[2]==="outline");
+    const hltxt=p.headline||(p.sub||"");
+    if(hltxt){
+      s+='<text x="74" y="'+(y+52)+'" font-size="12.5" fill="'+DGREY+'">'+escX(hltxt.length>110?hltxt.slice(0,108)+"…":hltxt)+'</text>';
+    }
+    const ly=y+rowH-30;
+    s+='<rect x="74" y="'+(ly-10)+'" width="200" height="12" rx="6" fill="'+LBLUE+'"/>';
+    if(pct>0)s+='<rect x="74" y="'+(ly-10)+'" width="'+Math.max(12,200*pct/100)+'" height="12" rx="6" fill="'+BLUE+'"/>';
+    s+='<text x="284" y="'+ly+'" font-size="12" fill="'+DGREY+'">'+pct+'%</text>';
+    s+='<text x="340" y="'+ly+'" font-size="12.5" fill="'+INK+'"><tspan font-weight="bold" fill="'+BLUE+'">'+msd+'/'+ms.length+'</tspan> milestones</text>';
+    if(up)s+='<text x="500" y="'+ly+'" font-size="12.5" fill="'+INK+'">Next: '+escX(up.name.length>40?up.name.slice(0,38)+"…":up.name)+' <tspan fill="'+DGREY+'">('+fmt(up.start)+')</tspan></text>';
+    s+='<text x="980" y="'+ly+'" font-size="12.5" fill="'+(risk.length?RED:DGREY)+'"'+(risk.length?' font-weight="bold"':'')+'>'+(risk.length?("⚠ "+risk.length+" at risk"):"No risks flagged")+'</text>';
+  });
+  s+=svgClose("Source: ORBA project tracker · portfolio view");
+  return s;
+}
+
+$("slideBtn").onclick=()=>{ slideMode="one"; $("smTitle").textContent="Status slide — "+proj().name;
+  $("slidebox").innerHTML=buildSlide(proj()); $("slideBg").classList.add("open"); };
+$("portBtn").onclick=()=>{ slideMode="all"; $("smTitle").textContent="Portfolio slide — all projects";
+  $("slidebox").innerHTML=buildPortfolio(); $("slideBg").classList.add("open"); };
+$("sClose").onclick=()=>$("slideBg").classList.remove("open");
+$("sPng").onclick=()=>{
+  const svg=$("slidebox").innerHTML;
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement("canvas"); c.width=2560; c.height=1440;
+    const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,2560,1440);
+    ctx.drawImage(img,0,0,2560,1440);
+    const a=document.createElement("a");
+    a.download=(slideMode==="all"?"ORBA Portfolio Status ":proj().name+" Status ")+iso(new Date())+".png";
+    a.href=c.toDataURL("image/png"); a.click();
+  };
+  img.src="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+};
+$("sCopy").onclick=()=>{
+  let txt="";
+  const ic={ns:"·",ip:"→",done:"✓",risk:"⚠"};
+  if(slideMode==="one"){
+    const p=proj(), ms=p.tasks.filter(t=>t.ms).sort((a,b)=>pd(a.start)-pd(b.start));
+    const risk=p.tasks.filter(t=>t.status==="risk"), done=p.tasks.filter(t=>t.status==="done");
+    txt=p.name+" — Status "+new Date().toLocaleDateString()+" ["+projHealth(p)[0]+"]\n";
+    if(p.headline)txt+=p.headline+"\n";
+    txt+="\nMilestones:\n"+ms.map(t=>ic[t.status]+" "+t.name+" — "+fmt(t.start)+" ("+SLBL[t.status]+")").join("\n");
+    txt+="\n\nCompleted: "+(done.length?done.map(t=>t.name).join("; "):"none yet");
+    txt+="\nRisks: "+(risk.length?risk.map(t=>t.name+(t.notes?" — "+t.notes:"")).join("; "):"none flagged");
+  }else{
+    txt="ORBA Portfolio Status — "+new Date().toLocaleDateString()+"\n";
+    state.projects.forEach(p=>{
+      const done=p.tasks.filter(t=>t.status==="done").length;
+      const risk=p.tasks.filter(t=>t.status==="risk");
+      const ms=p.tasks.filter(t=>t.ms), msd=ms.filter(t=>t.status==="done").length;
+      txt+="\n"+p.name+" ["+projHealth(p)[0]+"] — "+Math.round(done/Math.max(1,p.tasks.length)*100)+"% complete, "+msd+"/"+ms.length+" milestones";
+      if(p.headline)txt+="\n  "+p.headline;
+      if(risk.length)txt+="\n  Risks: "+risk.map(t=>t.name).join("; ");
+    });
+  }
+  navigator.clipboard.writeText(txt).then(()=>{ $("sCopy").textContent="Copied ✓"; setTimeout(()=>$("sCopy").textContent="Copy text summary",1500); });
+};
+[["editBg"],["slideBg"],["projBg"]].forEach(([id])=>{ $(id).addEventListener("click",e=>{ if(e.target.id===id)$(id).classList.remove("open"); }); });
+window.addEventListener("resize",()=>render());
+syncHeadline(); render();
+</script>
+</body>
+</html>
