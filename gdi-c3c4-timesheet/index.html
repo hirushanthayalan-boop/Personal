@@ -613,7 +613,7 @@ function printPDF(){
       <table class="ptab"><tr><th>Project/Leave Code</th>${dayHead}<th>Tot</th></tr>${body}
       <tr class="tot"><td>Total</td>${tots.map((t,i)=>{const dw=new Date(y,m-1,i+1).getDay();return `<td class="${dw===0||dw===6?"we":""}">${t||""}</td>`}).join("")}<td>${grand}</td></tr></table>
       <div class="pcert"><b>Certification:</b> I hereby certify that the hours reported above were spent on the specified GDI project or leave codes and that they are true and accurate to the best of my knowledge and ability</div>
-      <div class="psig"><div>Employee Signature</div><div>Date Submitted</div><div>Supervisor Signature</div><div>Date Approved</div></div>
+      <div class="psig"><div>Employee Signature</div><div>Date Submitted: <b>${new Date().toLocaleDateString("en-US")}</b></div><div>Supervisor Signature</div><div>Date Approved</div></div>
     </div>`;
   };
   const flagged=Object.keys(S.entries).filter(id=>S.entries[id].flag||S.entries[id].note).map(id=>{
@@ -710,7 +710,8 @@ async function exportSheet(kind){
   ws.getCell(empR,1).value="Employee Signature"; ws.getCell(empR,1).font={bold:true};
   ws.mergeCells(empR,2,empR+2,13); ws.getCell(empR,2).border=box;
   ws.mergeCells(empR,16,empR,18); ws.getCell(empR,16).value="Date Submitted"; ws.getCell(empR,16).border=box;
-  ws.mergeCells(empR,19,empR+1,23); ws.getCell(empR,19).border=box;
+  ws.mergeCells(empR,19,empR+1,23);
+  const dsub=ws.getCell(empR,19); dsub.value=new Date(); dsub.numFmt="m/d/yyyy"; dsub.alignment={horizontal:"center",vertical:"middle"}; dsub.border=box;
 
   ws.getCell(supR,1).value="Supervisor Signature"; ws.getCell(supR,1).font={bold:true};
   ws.mergeCells(supR,2,supR+2,13); ws.getCell(supR,2).border=box;
