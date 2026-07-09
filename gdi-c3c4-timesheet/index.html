@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDI c3/c4 Timesheet Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --navy:#100063; --red:#D0021B; --mblue:#8092B7; --lblue:#DFE4ED;
+    --tint:#CBD3E3; --grey:#5B5B5B; --black:#010101; --line:#d9dde6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;background:#fff;color:var(--black);font-size:15px;line-height:1.45;padding-bottom:80px}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  header{border-bottom:1px solid var(--line);padding:28px 0 20px;margin-bottom:28px}
+  .brand{font-weight:700;font-size:13px;letter-spacing:.18em;color:var(--navy)}
+  h1{font-size:26px;font-weight:700;color:var(--navy);margin-top:6px}
+  h1::before{content:"";display:inline-block;width:26px;height:4px;background:var(--red);margin-right:12px;vertical-align:middle}
+  .sub{color:var(--grey);font-size:13px;margin-top:6px}
+  .card{border:1px solid var(--line);border-radius:8px;padding:20px 22px;margin-bottom:22px;box-shadow:0 1px 3px rgba(16,0,99,.05)}
+  .card h2{font-size:15px;color:var(--navy);font-weight:700;margin-bottom:4px}
+  .card .hint{color:var(--grey);font-size:12.5px;margin-bottom:14px}
+  label{font-size:12px;color:var(--grey);display:block;margin-bottom:3px;font-weight:600}
+  input[type=text],input[type=month],input[type=number],select{
+    border:1px solid var(--line);border-radius:5px;padding:7px 9px;font-size:14px;font-family:inherit;width:100%;background:#fff}
+  input:focus,select:focus{outline:2px solid var(--mblue);outline-offset:-1px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:180px}
+  .cat{margin-bottom:16px}
+  .cat h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);border-radius:18px;padding:6px 13px;font-size:13px;cursor:pointer;background:#fff;user-select:none;display:inline-flex;align-items:center;gap:7px;transition:all .12s}
+  .chip:hover{border-color:var(--mblue)}
+  .chip.on{border-color:var(--navy);background:var(--lblue)}
+  .badge{font-size:10px;font-weight:700;padding:1.5px 6px;border-radius:3px;letter-spacing:.05em}
+  .b-c3{background:var(--navy);color:#fff}
+  .b-c4{background:var(--red);color:#fff}
+  .b-gray{background:repeating-linear-gradient(45deg,var(--mblue),var(--mblue) 4px,var(--navy) 4px,var(--navy) 8px);color:#fff}
+  .entry{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:10px}
+  .entry-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .entry-name{font-weight:600;font-size:14px;flex:1;min-width:220px}
+  .pill{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .pill button{border:none;background:#fff;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;color:var(--grey);font-family:inherit}
+  .pill button.on-c3{background:var(--navy);color:#fff}
+  .pill button.on-c4{background:var(--red);color:#fff}
+  .pill button.on-split{background:var(--mblue);color:#fff}
+  .split-box{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--grey)}
+  .split-box input{width:58px;padding:4px 6px}
+  .flagbox{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;color:var(--grey)}
+  .flagbox input{width:auto}
+  .weeks{display:flex;gap:10px;flex-wrap:wrap}
+  .wk{min-width:110px}
+  .wk label{font-weight:500}
+  .wk input{width:100%}
+  .note-in{margin-top:8px}
+  .rm{border:none;background:none;color:var(--grey);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
+  .rm:hover{color:var(--red)}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:6px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn:hover{background:#1a0a8a}
+  .btn.secondary{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+  .btn.small{padding:6px 14px;font-size:12.5px;font-weight:600}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .bar-wrap{margin:14px 0 4px}
+  .bar{height:22px;border-radius:5px;overflow:hidden;display:flex;border:1px solid var(--line);position:relative}
+  .bar .seg3{background:var(--navy)} .bar .seg4{background:var(--red)}
+  .bar .mark{position:absolute;left:70%;top:-4px;bottom:-4px;width:2px;background:var(--black)}
+  .bar-lab{display:flex;justify-content:space-between;font-size:12px;color:var(--grey);margin-top:5px}
+  .gridwrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;margin-bottom:14px}
+  table.grid{border-collapse:collapse;font-size:12px;min-width:100%}
+  table.grid th,table.grid td{border:1px solid #eceef3;padding:3px 4px;text-align:center;white-space:nowrap}
+  table.grid th{background:var(--lblue);color:var(--navy);font-size:11px;position:sticky;top:0}
+  table.grid th.we, table.grid td.we{background:#f5f6fa}
+  table.grid td:first-child,table.grid th:first-child{text-align:left;min-width:230px;position:sticky;left:0;background:#fff;z-index:2;font-weight:600}
+  table.grid th:first-child{background:var(--lblue);z-index:3}
+  table.grid td input{width:44px;border:none;text-align:center;font-size:12px;padding:3px 1px;background:transparent}
+  table.grid td input:focus{outline:2px solid var(--mblue);background:#fff}
+  table.grid td.rowtot,table.grid th.rowtot{font-weight:700;background:#f5f6fa;min-width:52px}
+  table.grid tr.total td{font-weight:700;background:var(--lblue);color:var(--navy)}
+  table.grid td input.label-in{width:220px;text-align:left;font-weight:600}
+  .gtitle{display:flex;align-items:center;gap:10px;margin:18px 0 8px}
+  .gtitle h3{font-size:14px;color:var(--navy)}
+  .warn{background:#fff8f0;border:1px solid #f0ddc0;color:#7a5c1e;font-size:12.5px;padding:9px 12px;border-radius:5px;margin:10px 0}
+  .flags-sum{font-size:12.5px;color:var(--grey);margin-top:8px}
+  .flags-sum span{color:var(--red);font-weight:700}
+  footer{border-top:1px solid var(--line);margin-top:36px;padding:18px 0;font-size:11.5px;color:var(--grey);text-align:center;line-height:1.7}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .corner{position:fixed;bottom:0;right:0;width:0;height:0;border-style:solid;border-width:0 0 34px 34px;border-color:transparent transparent var(--red) transparent}
+  .muted{color:var(--grey);font-size:12.5px}
+  /* Day-type picker */
+  .daypick{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .day{width:40px;border:1px solid var(--line);border-radius:5px;padding:4px 0 3px;text-align:center;font-size:11.5px;cursor:pointer;user-select:none;line-height:1.25;background:#fff}
+  .day small{display:block;font-size:9px;color:var(--grey);letter-spacing:.03em}
+  .day.we{background:#f5f6fa;color:var(--grey)}
+  .day.HOL{background:var(--navy);color:#fff;border-color:var(--navy)} .day.HOL small{color:var(--tint)}
+  .day.PTO{background:var(--mblue);color:#fff;border-color:var(--mblue)} .day.PTO small{color:#eef1f7}
+  .day.SICK{background:var(--red);color:#fff;border-color:var(--red)} .day.SICK small{color:#ffd9dd}
+  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--grey);margin-top:7px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid var(--line)}
+  /* Guidance accordion */
+  details.guide{border:1px solid var(--line);border-radius:6px;margin-bottom:14px;background:#fbfcfe}
+  details.guide summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:13px;color:var(--navy);list-style:none}
+  details.guide summary::before{content:"▸ ";color:var(--red)}
+  details.guide[open] summary::before{content:"▾ "}
+  details.guide .g-body{padding:0 16px 14px;font-size:12.5px;color:#333;line-height:1.55}
+  details.guide h4{font-size:12px;margin:10px 0 4px;color:var(--navy)}
+  details.guide ul{margin:0 0 4px 18px}
+  /* Summary */
+  .sumgrid{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}
+  .sumcard{flex:1;min-width:150px;border:1px solid var(--line);border-radius:6px;padding:12px 14px;text-align:center}
+  .sumcard .big{font-size:26px;font-weight:700;color:var(--navy);line-height:1.1}
+  .sumcard.c4 .big{color:var(--red)}
+  .sumcard .lab{font-size:11px;color:var(--grey);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
+  .ok{color:#1a7a3c;font-weight:600} .bad{color:var(--red);font-weight:600}
+  .wkbtn{border:1px solid var(--line);background:#fff;border-radius:4px;font-size:11px;color:var(--grey);cursor:pointer;padding:3px 8px;font-family:inherit}
+  .wkbtn:hover{border-color:var(--mblue);color:var(--navy)}
+  /* Print */
+  #printArea{display:none}
+  @media print{
+    @page{size:letter landscape;margin:9mm}
+    body.printing > :not(#printArea){display:none!important}
+    body.printing #printArea{display:block}
+    .psheet{page-break-after:always}
+    .psheet:last-child{page-break-after:auto}
+  }
+  .psheet{font-size:9px;color:#000}
+  .psheet h2{font-size:13px;color:var(--navy);margin-bottom:2px}
+  .psheet h2::before{content:"";display:inline-block;width:16px;height:3px;background:var(--red);margin-right:7px;vertical-align:middle}
+  .psheet .meta{font-size:9.5px;margin-bottom:6px}
+  .ptab{border-collapse:collapse;width:100%;table-layout:fixed}
+  .ptab th,.ptab td{border:1px solid #999;padding:2px 1px;text-align:center;overflow:hidden}
+  .ptab th{background:#eef1f7}
+  .ptab th:first-child,.ptab td:first-child{width:150px;text-align:left;padding-left:3px}
+  .ptab .we{background:#f3f4f8}
+  .ptab tr.tot td{font-weight:700;background:#eef1f7}
+  .pcert{margin-top:8px;font-size:8.5px;border:1px solid #999;padding:5px}
+  .psig{display:flex;gap:30px;margin-top:18px;font-size:9.5px}
+  .psig div{flex:1;border-top:1px solid #000;padding-top:3px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand">GDI</div>
+  <h1>c3 / c4 timesheet generator</h1>
+  <div class="sub">AI Safety team · Splits time between the c3 (GDI Solutions) and the c4 (State AI Safety Action Fund) · Generates two GDI-template timesheets.</div>
+</div></header>
+
+<div class="wrap">
+
+<div class="card">
+  <h2>1 · Employee &amp; period</h2>
+  <div class="hint">Each person logs c3 and c4 on two separate timesheets. One tool run = one reporting month.</div>
+  <div class="row">
+    <div><label>Employee name</label><select id="empName">
+      <option value="">— select —</option>
+      <option>Trooper Sanders</option>
+      <option>Brian Shillinglaw</option>
+      <option>Hirushan Thayalan</option>
+    </select></div>
+    <div><label>Reporting period</label><input type="month" id="period">
+      <button class="wkbtn" style="margin-top:5px" onclick="duplicatePrevMonth()" title="Copy last month's activities, coding and hours into this month as a starting point">⧉ Duplicate previous month</button></div>
+    <div><label>c3 entity label</label><input type="text" id="c3Label" value="GDI Solutions (c3)"></div>
+    <div><label>c4 entity label</label><input type="text" id="c4Label" value="State AI Safety Action Fund (c4)"></div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div style="flex:0 0 140px"><label>Standard hours / day</label><input type="number" id="hrsDay" min="1" max="24" step="0.5" value="8"></div>
+    <div style="flex:2;min-width:320px">
+      <label>Holidays &amp; leave days — click a day to cycle: work → holiday → vacation → sick</label>
+      <div class="daypick" id="dayPick"></div>
+      <div class="legend">
+        <span><i style="background:var(--navy)"></i>Public Holiday</span>
+        <span><i style="background:var(--mblue)"></i>Personal Leave/Vacation</span>
+        <span><i style="background:var(--red)"></i>Sick</span>
+        <span>Marked days are auto-logged at standard hours on the c3 timesheet's leave rows and excluded when monthly hours are spread across working days.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>2 · Select activities by program</h2>
+  <div class="hint">Two-step decision tree: pick the program group (mirrors Asana — Monthly Roundtable, Insurable AI, Liability, Gubernatorial Transition, Fundraising, Ops, plus New Area Exploration), then the kind of work. Each program has a General catch-all. Defaults follow the c3/c4 staff guidance; striped badges are gray areas and every entry's coding can be overridden in step 3.</div>
+  <details class="guide"><summary>Coding rules are built in — open for the quick reference (no doc lookup needed)</summary>
+    <div class="g-body">
+      <h4>Code to c3 — educational, research-based, or non-legislative</h4>
+      <ul>
+        <li>Public thought leadership on whole-of-state AI governance — full and fair exposition, no call to action</li>
+        <li>Educational briefings &amp; AI-fluency sessions (the general "here's the problem" version)</li>
+        <li>Supporting state agencies on non-legislative tools: oversight, procurement, licensing, insurance-commissioner guidance</li>
+        <li>Informing AGs about AI risks under existing law, without pushing a specific enforcement action</li>
+        <li>Helping officials implement existing laws (NY/CA transparency) via seminars and network-building</li>
+        <li>Non-partisan polling / message testing framed for public education, results broadly available</li>
+        <li>Model language only as technical assistance responding to a written request from a legislative body</li>
+      </ul>
+      <h4>Code to c4 — advocacy, lobbying, or aimed at specific legislation / political outcomes</h4>
+      <ul>
+        <li>Roundtable convenings and their prep — c4 by default (they touch specific legislation, policy models, enforcement)</li>
+        <li>Drafting or circulating model legislation / model language intended to influence a bill</li>
+        <li>Coordinating stakeholders to prepare specific legislation, or working with legislators to move it</li>
+        <li>Advocacy on specific liability or insurance frameworks for AI with lawmakers</li>
+        <li>Action-oriented convenings built around advancing a specific approach, not just explaining it</li>
+        <li>Bill-specific or non-public polling kept proprietary for friendly legislators</li>
+        <li>Capacity-building that advises on messaging or specific legislation rather than general risk education</li>
+      </ul>
+      <h4>Gray areas</h4>
+      Convenings, capacity building, and AG support flip on the same axis: educating / public research = c3; advocating a specific legislative or enforcement outcome = c4. Gubernatorial transitions: generic onboarding leans c3, pushing policy priorities leans c4. Genuinely mixed block → split it. Can't tell → code your best guess and <b>flag it for review</b>.
+    </div>
+  </details>
+  <div class="row" style="align-items:flex-end;margin-bottom:12px">
+    <div style="flex:0 0 320px"><label>1 · Program group</label><select id="progSel" onchange="S.progSel=this.value;save();renderCats()"></select></div>
+    <div class="muted" style="padding-bottom:8px" id="progCount"></div>
+  </div>
+  <div id="catList"></div>
+  <div class="row" style="margin-top:6px;align-items:flex-end">
+    <div style="flex:2"><label>Add a custom activity (filed under the selected program)</label><input type="text" id="customName" placeholder="e.g. Board &amp; governance, press interview…"></div>
+    <div style="flex:0 0 130px"><label>Default coding</label><select id="customCoding"><option value="C3">c3</option><option value="C4">c4</option><option value="SPLIT">Split</option></select></div>
+    <div style="flex:0 0 auto"><button class="btn small secondary" onclick="addCustom()">Add</button></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>3 · Monthly hours, coding &amp; flags</h2>
+  <div class="hint">Enter total hours for the month per activity — the tool spreads them evenly across the month's working days (any day is editable in step 4). Use <b>Split</b> for genuinely mixed work. Flag gray-area calls for review rather than leaving them uncoded.</div>
+  <div id="entries"><div class="muted">No activities selected yet — toggle activities in step 2.</div></div>
+  <div class="bar-wrap" id="barWrap" style="display:none">
+    <div class="bar"><div class="seg3" id="seg3"></div><div class="seg4" id="seg4"></div><div class="mark" title="70/30 planning benchmark"></div></div>
+    <div class="bar-lab"><span id="lab3"></span><span>▲ 70/30 planning benchmark (not a per-week quota — code what you actually did)</span><span id="lab4"></span></div>
+  </div>
+  <div class="flags-sum" id="flagsSum"></div>
+</div>
+
+<div class="card">
+  <h2>4 · Review &amp; direct edit</h2>
+  <div class="hint">Full override: every cell, label and total below is directly editable before export. Daily values are an even allocation of your monthly actuals across working days — edit specific days where the real pattern materially differed. Rebuilding from monthly entries overwrites manual edits.</div>
+  <div class="actions" style="margin-bottom:6px">
+    <button class="btn" onclick="buildGrids(true)">Build / rebuild daily grids</button>
+    <span class="muted" id="editState"></span>
+  </div>
+  <div id="gridArea"></div>
+</div>
+
+<div class="card">
+  <h2>5 · Summary &amp; generate timesheets</h2>
+  <div class="hint">Check the month before exporting. Excel downloads reproduce the GDI template layout; "Save as PDF" prints both timesheets plus the flag summary in one landscape file. Flagged items and notes also land on a second sheet in each workbook.</div>
+  <div id="summary"></div>
+  <div class="actions">
+    <button class="btn" id="dl3" onclick="exportSheet('C3')" disabled>Download c3 timesheet (.xlsx)</button>
+    <button class="btn" id="dl4" onclick="exportSheet('C4')" style="background:var(--red)" disabled>Download c4 timesheet (.xlsx)</button>
+    <button class="btn secondary" id="dlBoth" onclick="exportSheet('C3');setTimeout(()=>exportSheet('C4'),400)" disabled>Download both</button>
+    <button class="btn secondary" id="dlPdf" onclick="printPDF()" disabled>Save as PDF</button>
+  </div>
+  <div class="actions" style="margin-top:12px">
+    <button class="btn small secondary" onclick="saveJSON()">Save month to file</button>
+    <button class="btn small secondary" onclick="el('jsonIn').click()">Load month from file</button>
+    <input type="file" id="jsonIn" accept=".json" style="display:none" onchange="loadJSON(this)">
+    <button class="btn small secondary" onclick="resetAll()" style="margin-left:auto;border-color:var(--line);color:var(--grey)">Reset tool</button>
+    <span class="muted">Work saves automatically in this browser; use file save/load to move between computers or archive a month.</span>
+  </div>
+</div>
+
+</div>
+
+<footer><div class="wrap">
+  Global Development Incubator · Internal use only · Prototype for the AI Safety team<br>
+  Source policy: "Timesheet Coding: C3 vs C4 — Staff Guidance" (C3/C4 Compliance folder in Drive) · When you can't tell, code your best guess and flag it for review.
+</div></footer>
+<div class="corner"></div>
+<div id="printArea"></div>
+
+<script>
+/* ---------- Activity library: program groups (mirrors Asana) × generic activities ----------
+   Decision tree: pick the program you were working in, then the kind of work.
+   Coding defaults follow the "Timesheet Coding: C3 vs C4" staff guidance. */
+const GEN_NOTE="Catch-all for program work that doesn't fit the named activities — set c3/c4 to match what you actually did";
+const PROGRAMS = [
+ {id:"rt", name:"1 · Monthly Roundtable", short:"Roundtable", items:[
+  {id:"rt_conv", name:"Roundtable sessions & prep", code:"C4", gray:true, grayNote:"c4 by default per policy — Roundtable conversations touch specific legislation, policy models, enforcement"},
+  {id:"rt_edu",  name:"AI-risk education & fluency content for Roundtable audiences", code:"C3"},
+  {id:"rt_adv",  name:"Follow-up advocacy with lawmakers on specific legislation", code:"C4"},
+  {id:"rt_gen",  name:"General — Monthly Roundtable", code:"C3", gray:true, grayNote:GEN_NOTE},
+ ]},
+ {id:"ins", name:"2 · Insurable AI", short:"Insurable AI", items:[
+  {id:"ins_comms",name:"Framing & comms (problem statement, dossier, media, public materials)", code:"C3"},
+  {id:"ins_wk",  name:"Workshops & expert convenings (educational / roadmap)", code:"C3"},
+  {id:"ins_net", name:"Network building & stakeholder engagement", code:"C3", gray:true, grayNote:"c3 while educational engagement — flips c4 if coordinating stakeholders toward specific legislation"},
+  {id:"ins_pr",  name:"Principles development & endorsement outreach", code:"C3"},
+  {id:"ins_adv", name:"Advocacy on specific insurance frameworks with lawmakers", code:"C4"},
+  {id:"ins_gen", name:"General — Insurable AI", code:"C3", gray:true, grayNote:GEN_NOTE},
+ ]},
+ {id:"liab", name:"3 · Liability", short:"Liability", items:[
+  {id:"liab_res",name:"Research, education & field-building (convenings, storytelling, publications)", code:"C3"},
+  {id:"liab_wg", name:"Model-legislation working groups & drafting", code:"C4"},
+  {id:"liab_adv",name:"Advocacy on specific liability frameworks with lawmakers or AGs", code:"C4"},
+  {id:"liab_gen",name:"General — Liability", code:"C3", gray:true, grayNote:GEN_NOTE},
+ ]},
+ {id:"gov", name:"4 · Gubernatorial Transition", short:"Gub. Transition", items:[
+  {id:"gov_rm",  name:"AI roadmap development & technical assistance (generic onboarding/education)", code:"C3", gray:true, grayNote:"Leans c3 per guidance — flips c4 the moment it pushes specific policy priorities"},
+  {id:"gov_net", name:"Partner & association engagement (NGA, Results for America, state groups)", code:"C3"},
+  {id:"gov_adv", name:"Pushing specific policy priorities with a transition team", code:"C4"},
+  {id:"gov_gen", name:"General — Gubernatorial Transition", code:"C3", gray:true, grayNote:GEN_NOTE},
+ ]},
+ {id:"fund", name:"5 · Fundraising", short:"Fundraising", items:[
+  {id:"fund_c3", name:"Fundraising for c3 programs (GDI Solutions)", code:"C3"},
+  {id:"fund_c4", name:"Fundraising for the Action Fund (c4)", code:"C4"},
+  {id:"fund_rep",name:"Funder updates & grant reporting", code:"C3", gray:true, grayNote:"Code to the entity the grant funds — c3 for GDIS grants, c4 for Action Fund grants"},
+  {id:"fund_gen",name:"General — Fundraising", code:"C3", gray:true, grayNote:GEN_NOTE},
+ ]},
+ {id:"ops", name:"6 · Ops & Administration", short:"Ops", items:[
+  {id:"ops_mgmt",name:"General management & operations", code:"SPLIT", gray:true, grayNote:"ED overhead — commonly split; set the % to match how the role is allocated"},
+  {id:"ops_ent", name:"Entity compliance, records & shared services", code:"SPLIT", gray:true, grayNote:"Split per the shared-services agreement allocation"},
+  {id:"ops_gen", name:"General — Ops & Administration", code:"SPLIT", gray:true, grayNote:GEN_NOTE},
+ ]},
+ {id:"new", name:"7 · New Area Exploration", short:"New Area", items:[
+  {id:"new_res", name:"Scoping & landscape research on a new policy domain", code:"C3"},
+  {id:"new_conv",name:"Exploratory stakeholder & partner conversations", code:"C3"},
+  {id:"new_leg", name:"Scoping specific legislative opportunities in a new area", code:"C4"},
+  {id:"new_gen", name:"General — New Area Exploration", code:"C3", gray:true, grayNote:GEN_NOTE},
+ ]},
+];
+const FLAT = {};
+PROGRAMS.forEach(p=>p.items.forEach(i=>{ i.prog=p.short; i.full=p.short+" — "+i.name; FLAT[i.id]=i; }));
+
+/* ---------- State ---------- */
+const KEY="gdi-c3c4-timesheet-v4";
+const LEAVE_LABELS={HOL:"Public Holiday",PTO:"Personal Leave/Vacation",SICK:"Sick"};
+let S = { period: defaultPeriod(), entries:{}, custom:[], grids:null, edited:false, dayTypes:{}, hrsDay:8 };
+
+function defaultPeriod(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function save(){
+  S.name=el("empName").value; S.c3Label=el("c3Label").value; S.c4Label=el("c4Label").value; S.period=el("period").value;
+  S.hrsDay=+el("hrsDay").value||8;
+  localStorage.setItem(KEY, JSON.stringify(S));
+  if(S.period) localStorage.setItem(KEY+":"+S.period, JSON.stringify(S)); // per-month snapshot for duplicate/restore
+}
+function prevPeriod(p){ let [y,m]=p.split("-").map(Number); m--; if(m<1){m=12;y--;} return y+"-"+String(m).padStart(2,"0"); }
+function duplicatePrevMonth(){
+  const cur=el("period").value, prev=prevPeriod(cur);
+  const raw=localStorage.getItem(KEY+":"+prev);
+  if(!raw){ alert("No saved report found for "+prev+". A month is saved automatically whenever you work on it, or load one from file first."); return; }
+  const P=JSON.parse(raw);
+  if(Object.keys(S.entries).length && !confirm("Copy "+prev+" into "+cur+"? This replaces the current month's entries (day markings and grids reset).")) return;
+  const withHours=confirm("Also copy last month's hours as a starting point?\n\nOK = copy hours (adjust to actuals before exporting)\nCancel = activities & coding only, hours start at zero");
+  S.entries=JSON.parse(JSON.stringify(P.entries||{}));
+  if(!withHours) Object.values(S.entries).forEach(e=>e.hours=0);
+  S.custom=P.custom||S.custom; S.hrsDay=P.hrsDay||S.hrsDay;
+  S.dayTypes={}; S.grids=null; S.edited=false;
+  save(); applyState(); renderCats(); renderDayPick(); renderEntries(); renderGrids();
+}
+function load(){
+  try{ const raw=localStorage.getItem(KEY); if(raw){ S=Object.assign(S,JSON.parse(raw)); } }catch(e){}
+  migrateEntries(); applyState();
+}
+function migrateEntries(){
+  Object.keys(S.entries||{}).forEach(id=>{
+    if(!actOf(id)){ delete S.entries[id]; return; } // drop entries whose activity id no longer exists
+    const e=S.entries[id];
+    if(e.weeks){ e.hours=Object.values(e.weeks).reduce((a,b)=>a+(+b||0),0); delete e.weeks; } // migrate old weekly files
+  });
+}
+function applyState(){
+  el("period").value = S.period || defaultPeriod();
+  if(S.name) el("empName").value=S.name;
+  if(S.c3Label) el("c3Label").value=S.c3Label;
+  if(S.c4Label) el("c4Label").value=S.c4Label;
+  el("hrsDay").value=S.hrsDay||8;
+}
+function el(id){return document.getElementById(id)}
+
+/* ---------- Day-type picker (work → holiday → vacation → sick) ---------- */
+const CYCLE=[null,"HOL","PTO","SICK"];
+function renderDayPick(){
+  const {y,m,days}=monthInfo();
+  el("dayPick").innerHTML=Array.from({length:days},(_,i)=>{
+    const d=i+1, dw=new Date(y,m-1,d).getDay(), t=S.dayTypes[d]||"";
+    return `<span class="day ${dw===0||dw===6?"we":""} ${t}" onclick="cycleDay(${d})" title="${t?LEAVE_LABELS[t]:"Working day"}">${d}<small>${["Su","Mo","Tu","We","Th","Fr","Sa"][dw]}</small></span>`;
+  }).join("");
+}
+function cycleDay(d){
+  const cur=CYCLE.indexOf(S.dayTypes[d]||null);
+  const next=CYCLE[(cur+1)%CYCLE.length];
+  if(next) S.dayTypes[d]=next; else delete S.dayTypes[d];
+  markStale(); save(); renderDayPick(); renderEntries();
+}
+
+/* ---------- Month & distribution ---------- */
+function monthInfo(){
+  const [y,m]=el("period").value.split("-").map(Number);
+  return {y, m, days:new Date(y,m,0).getDate()};
+}
+function monthWorkdays(){
+  const {y,m,days}=monthInfo(); const out=[];
+  for(let d=1;d<=days;d++){ const dw=new Date(y,m-1,d).getDay();
+    if(dw>0&&dw<6&&!S.dayTypes[d]) out.push(d); }
+  if(out.length) return out;
+  const fb=[]; for(let d=1;d<=days;d++) if(!S.dayTypes[d]) fb.push(d);
+  return fb.length? fb : Array.from({length:days},(_,i)=>i+1);
+}
+function monName(m){return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]}
+function distribute(hours, days, cells){
+  if(!hours||!days.length) return;
+  const q=0.25, n=days.length;
+  let per=Math.floor(hours/n/q)*q;
+  let rem=Math.round((hours-per*n)/q); // remainder in quarter-hour units
+  days.forEach((d,i)=>{ let h=per; if(i>=n-rem) h+=q; cells[d-1]=Math.round(((cells[d-1]||0)+h)*100)/100; });
+}
+
+/* ---------- Render: program decision tree + activity chips ---------- */
+function renderCats(){
+  const sel=el("progSel");
+  sel.innerHTML = `<option value="all">All programs</option>`+PROGRAMS.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+  sel.value = S.progSel||"all";
+  const progs = sel.value==="all"? PROGRAMS : PROGRAMS.filter(p=>p.id===sel.value);
+  el("catList").innerHTML = progs.map(p=>`<div class="cat"><h3>${p.name}</h3><div class="chips">`+
+    p.items.map(i=>chipHtml(i)).join("")+
+    S.custom.filter(c=>c.prog===p.short).map(i=>chipHtml(i)).join("")+
+    `</div></div>`).join("")
+    + (sel.value==="all" && S.custom.some(c=>!c.prog)?`<div class="cat"><h3>Custom</h3><div class="chips">${S.custom.filter(c=>!c.prog).map(i=>chipHtml(i)).join("")}</div></div>`:"");
+  const nOn=Object.keys(S.entries).length;
+  el("progCount").textContent = nOn? `${nOn} activit${nOn===1?"y":"ies"} selected across programs`:"";
+}
+function chipHtml(i){
+  const on = !!S.entries[i.id];
+  const badge = i.gray ? `<span class="badge b-gray">${i.code==="SPLIT"?"split":i.code.toLowerCase()} · gray</span>`
+    : `<span class="badge ${i.code==="C4"?"b-c4":i.code==="SPLIT"?"b-gray":"b-c3"}">${i.code==="SPLIT"?"split":i.code.toLowerCase()}</span>`;
+  return `<span class="chip ${on?"on":""}" onclick="toggle('${i.id}')" title="${i.grayNote||""}">${shortName(i.name)} ${badge}</span>`;
+}
+function shortName(n){ return n.length>58? n.slice(0,55)+"…" : n; }
+function actOf(id){ return FLAT[id]||S.custom.find(c=>c.id===id); }
+function dispName(a){ return a.full||(a.prog? a.prog+" — "+a.name : a.name); }
+function toggle(id){
+  if(S.entries[id]) delete S.entries[id];
+  else { const i=actOf(id);
+    S.entries[id]={coding:i.code==="SPLIT"?"SPLIT":i.code, split:70, flag:!!i.gray, note:i.grayNote||"", hours:0}; }
+  markStale(); save(); renderCats(); renderEntries();
+}
+function addCustom(){
+  const name=el("customName").value.trim(); if(!name) return;
+  const id="cu_"+Date.now();
+  const p=PROGRAMS.find(p=>p.id===S.progSel);
+  S.custom.push({id,name,code:el("customCoding").value,prog:p?p.short:null});
+  el("customName").value="";
+  toggle(id);
+}
+
+/* ---------- Render: monthly entries ---------- */
+function renderEntries(){
+  const ids=Object.keys(S.entries);
+  const box=el("entries");
+  if(!ids.length){ box.innerHTML='<div class="muted">No activities selected yet — toggle activities in step 2.</div>'; updateBar(); return; }
+  const nWd=monthWorkdays().length;
+  box.innerHTML = ids.map(id=>{
+    const a=actOf(id), e=S.entries[id];
+    return `<div class="entry">
+      <div class="entry-head">
+        <span class="entry-name">${dispName(a)}${a.gray?' <span class="badge b-gray">gray area</span>':""}</span>
+        <span class="pill">
+          <button class="${e.coding==="C3"?"on-c3":""}" onclick="setCoding('${id}','C3')">c3</button>
+          <button class="${e.coding==="C4"?"on-c4":""}" onclick="setCoding('${id}','C4')">c4</button>
+          <button class="${e.coding==="SPLIT"?"on-split":""}" onclick="setCoding('${id}','SPLIT')">split</button>
+        </span>
+        ${e.coding==="SPLIT"?`<span class="split-box"><input type="number" min="0" max="100" step="5" value="${e.split}" onchange="this.value=Math.max(0,Math.min(100,+this.value||0));S.entries['${id}'].split=+this.value;markStale();save();updateBar()"> % to c3</span>`:""}
+        <label class="flagbox"><input type="checkbox" ${e.flag?"checked":""} onchange="S.entries['${id}'].flag=this.checked;markStale();save();renderFlags()"> ⚑ flag for review</label>
+        <button class="rm" title="Remove" onclick="toggle('${id}')">×</button>
+      </div>
+      <div class="weeks"><div class="wk" style="min-width:170px"><label>Hours this month <span style="font-weight:400">(spread over ${nWd} working days)</span></label>
+        <input type="number" min="0" step="0.25" placeholder="0" value="${e.hours||""}" onchange="this.value=Math.max(0,+this.value||0);S.entries['${id}'].hours=+this.value;markStale();save();updateBar()"></div>
+        <div class="wk" style="align-self:flex-end;min-width:auto"><span class="muted">≈ ${e.hours? round2(e.hours/nWd):0} h/working day</span></div>
+      </div>
+      <div class="note-in"><input type="text" placeholder="Note (optional — context for flags / splits)" value="${(e.note||"").replace(/"/g,"&quot;")}" onchange="S.entries['${id}'].note=this.value;markStale();save()"></div>
+    </div>`;
+  }).join("");
+  updateBar();
+}
+function markStale(){ if(S.grids && !S.stale){ S.stale=true; editState(); renderSummary(); } else if(S.grids){ S.stale=true; } }
+function setCoding(id,c){ S.entries[id].coding=c; markStale(); save(); renderEntries(); renderSummary(); }
+function entryTotals(){
+  let t3=0,t4=0;
+  for(const id in S.entries){ const e=S.entries[id];
+    const tot=+e.hours||0;
+    if(e.coding==="C3") t3+=tot; else if(e.coding==="C4") t4+=tot;
+    else { t3+=tot*(e.split/100); t4+=tot*(1-e.split/100); } }
+  return {t3,t4};
+}
+function updateBar(){
+  const {t3,t4}=entryTotals(); const tot=t3+t4;
+  el("barWrap").style.display = tot? "block":"none";
+  if(tot){ const p3=Math.round(t3/tot*100);
+    el("seg3").style.width=p3+"%"; el("seg4").style.width=(100-p3)+"%";
+    const cap=capacity();
+    const delta=round2(tot-cap.work);
+    const capMsg = Math.abs(delta)<0.01? ` · matches capacity` : delta<0? ` · ${round2(-delta)} h uncoded vs capacity` : ` · ${delta} h over capacity`;
+    el("lab3").textContent=`c3: ${round2(t3)} h (${p3}%)`;
+    el("lab4").textContent=`c4: ${round2(t4)} h (${100-p3}%)${capMsg}`; }
+  renderFlags();
+}
+function capacity(){
+  const {y,m,days}=monthInfo(); const hrs=S.hrsDay||8;
+  let wd=0, leave=0;
+  for(let d=1;d<=days;d++){ const dw=new Date(y,m-1,d).getDay();
+    if(S.dayTypes[d]) leave++;
+    else if(dw>0&&dw<6) wd++; }
+  return {workdays:wd, leaveDays:leave, work:wd*hrs, leave:leave*hrs, total:(wd+leave)*hrs};
+}
+function renderFlags(){
+  const f=Object.keys(S.entries).filter(id=>S.entries[id].flag)
+    .map(id=>dispName(actOf(id)));
+  el("flagsSum").innerHTML = f.length? `<span>⚑ ${f.length} item(s) flagged for review:</span> ${f.map(shortName).join(" · ")} — these appear on the "Flags &amp; notes" sheet of each export.` : "";
+}
+function round2(x){return Math.round(x*100)/100}
+
+/* ---------- Daily grids ---------- */
+function buildGrids(confirmOverwrite){
+  if(confirmOverwrite && S.edited && !confirm("Rebuilding will overwrite your manual edits in the daily grids. Continue?")) return;
+  const {days}=monthInfo(); const wd=monthWorkdays();
+  const g={C3:[],C4:[]};
+  for(const id in S.entries){
+    const a=actOf(id), e=S.entries[id];
+    const mk=()=>({label:dispName(a), flag:e.flag, note:e.note||"", cells:Array(days).fill(0)});
+    const tgt={};
+    if(e.coding==="SPLIT"){ tgt.C3={row:mk(),f:e.split/100}; tgt.C4={row:mk(),f:1-e.split/100}; }
+    else tgt[e.coding]={row:mk(),f:1};
+    const h=+e.hours||0;
+    if(h) for(const k in tgt) distribute(round2(h*tgt[k].f), wd, tgt[k].row.cells);
+    for(const k in tgt){ if(tgt[k].row.cells.some(v=>v>0)) g[k].push(tgt[k].row); }
+  }
+  // Auto leave rows from the day picker (always filed to the c3 timesheet)
+  const hrs=S.hrsDay||8, ent="C3";
+  ["HOL","PTO","SICK"].forEach(t=>{
+    const marked=Object.keys(S.dayTypes).filter(d=>S.dayTypes[d]===t&&+d<=days).map(Number);
+    if(!marked.length) return;
+    const row={label:LEAVE_LABELS[t], flag:false, note:"auto-logged from day picker", cells:Array(days).fill(0)};
+    marked.forEach(d=>row.cells[d-1]=hrs);
+    g[ent].push(row);
+  });
+  S.grids=g; S.edited=false; S.stale=false; save(); renderGrids();
+}
+function renderGrids(){
+  const area=el("gridArea");
+  if(!S.grids){ area.innerHTML='<div class="muted">Build the daily grids to review and edit before export.</div>'; setDl(); return; }
+  const {y,m,days}=monthInfo();
+  const head=`<tr><th>Project/Leave Code</th>${Array.from({length:days},(_,i)=>{
+    const dw=new Date(y,m-1,i+1).getDay(); const off=S.dayTypes[i+1]?" 🌴":"";
+    return `<th class="${dw===0||dw===6?"we":""}" title="${S.dayTypes[i+1]?LEAVE_LABELS[S.dayTypes[i+1]]:""}">${i+1}${off}<br>${"SMTWTFS"[dw]}</th>`;}).join("")}<th class="rowtot">Total</th></tr>`;
+  area.innerHTML = ["C3","C4"].map(k=>{
+    const rows=S.grids[k];
+    const body=rows.map((r,ri)=>`<tr><td><input class="label-in" value="${r.label.replace(/"/g,"&quot;")}" onchange="S.grids['${k}'][${ri}].label=this.value;S.edited=true;save();editState()">${r.flag?" ⚑":""}</td>${
+      r.cells.map((v,ci)=>{const dw=new Date(y,m-1,ci+1).getDay();
+        return `<td class="${dw===0||dw===6?"we":""}"><input type="number" min="0" step="0.25" value="${v||""}" onchange="cellEdit('${k}',${ri},${ci},this.value)"></td>`;}).join("")
+      }<td class="rowtot">${round2(r.cells.reduce((a,b)=>a+b,0))}</td>
+      <td style="border:none"><button class="rm" onclick="S.grids['${k}'].splice(${ri},1);S.edited=true;save();renderGrids()">×</button></td></tr>`).join("");
+    const tots=Array.from({length:days},(_,i)=>round2(rows.reduce((a,r)=>a+(r.cells[i]||0),0)));
+    const grand=round2(tots.reduce((a,b)=>a+b,0));
+    return `<div class="gtitle"><h3>${k==="C3"?el("c3Label").value:el("c4Label").value} — ${grand} h</h3>
+      <button class="btn small secondary" onclick="addRow('${k}')">+ add row</button></div>
+      <div class="gridwrap"><table class="grid">${head}${body}
+      <tr class="total"><td>Total</td>${tots.map((t,i)=>{const dw=new Date(y,m-1,i+1).getDay();return `<td class="${dw===0||dw===6?"we":""}">${t||""}</td>`}).join("")}<td class="rowtot">${grand}</td></tr></table></div>`;
+  }).join("");
+  editState(); setDl();
+}
+function cellEdit(k,ri,ci,v){ S.grids[k][ri].cells[ci]=Math.max(0,+v||0); S.edited=true; save(); renderGrids(); }
+function addRow(k){ const {days}=monthInfo(); S.grids[k].push({label:"New line item",flag:false,note:"",cells:Array(days).fill(0)}); S.edited=true; save(); renderGrids(); }
+function editState(){
+  const st=el("editState");
+  if(S.stale){ st.innerHTML='<span class="bad">⚠ Entries changed since grids were built — rebuild before exporting, or exports will use the old allocation.</span>'; return; }
+  st.textContent = S.edited? "Manual edits applied — rebuild discards them." : (S.grids? "Grids generated from monthly entries." : "");
+}
+function setDl(){ const ok=!!S.grids; ["dl3","dl4","dlBoth","dlPdf"].forEach(i=>el(i).disabled=!ok); renderSummary(); }
+
+/* ---------- Summary panel ---------- */
+function gridTotal(k){ return S.grids? round2(S.grids[k].reduce((a,r)=>a+r.cells.reduce((x,y)=>x+y,0),0)) : 0; }
+function renderSummary(){
+  const box=el("summary"); if(!box) return;
+  if(!S.grids){ box.innerHTML='<div class="muted" style="margin-bottom:10px">Build the daily grids in step 4 to see the month summary.</div>'; return; }
+  const staleWarn=S.stale?'<div class="warn">⚠ Entries changed since the grids were built. Rebuild in step 4 before exporting — the downloads below still reflect the old allocation.</div>':"";
+  const t3=gridTotal("C3"), t4=gridTotal("C4"), tot=round2(t3+t4);
+  const p3=tot? Math.round(t3/tot*100):0;
+  const cap=capacity();
+  const delta=round2(tot-(cap.work+cap.leave));
+  const nFlags=Object.keys(S.entries).filter(id=>S.entries[id].flag).length;
+  box.innerHTML=staleWarn+`<div class="sumgrid">
+    <div class="sumcard"><div class="big">${t3}</div><div class="lab">c3 hours (${p3}%)</div></div>
+    <div class="sumcard c4"><div class="big">${t4}</div><div class="lab">c4 hours (${100-p3}%)</div></div>
+    <div class="sumcard"><div class="big">${tot}</div><div class="lab">total logged</div></div>
+    <div class="sumcard"><div class="big">${cap.work+cap.leave}</div><div class="lab">capacity (${cap.workdays} wd × ${S.hrsDay||8}h + ${cap.leaveDays} leave)</div></div>
+    <div class="sumcard"><div class="big ${Math.abs(delta)<0.01?"ok":"bad"}" style="font-size:20px;padding-top:5px">${Math.abs(delta)<0.01?"✓ balanced":(delta<0? round2(-delta)+" h short":delta+" h over")}</div><div class="lab">vs capacity</div></div>
+  </div>
+  <div class="muted" style="margin-bottom:10px">${p3>=60&&p3<=80?`<span class="ok">Mix is near the 70/30 planning benchmark.</span>`:`<span>Mix is ${p3}/${100-p3} vs the 70/30 planning benchmark — that's fine if it reflects actual work (code what you actually did).</span>`}
+  ${nFlags?` · <span class="bad">⚑ ${nFlags} gray-area item(s) flagged for review</span> — included in exports.`:" · No flags."}</div>`;
+}
+
+/* ---------- Print / Save as PDF ---------- */
+function printPDF(){
+  if(!S.grids) return;
+  const {y,m,days}=monthInfo();
+  const per=`${monName(m)} ${y}`;
+  const dayHead=Array.from({length:days},(_,i)=>{const dw=new Date(y,m-1,i+1).getDay();
+    return `<th class="${dw===0||dw===6?"we":""}">${i+1}</th>`;}).join("");
+  const sheet=k=>{
+    const rows=S.grids[k];
+    const body=rows.map(r=>`<tr><td>${r.label}${r.flag?" ⚑":""}</td>${r.cells.map((v,i)=>{const dw=new Date(y,m-1,i+1).getDay();
+      return `<td class="${dw===0||dw===6?"we":""}">${v||""}</td>`;}).join("")}<td><b>${round2(r.cells.reduce((a,b)=>a+b,0))}</b></td></tr>`).join("");
+    const tots=Array.from({length:days},(_,i)=>round2(rows.reduce((a,r)=>a+(r.cells[i]||0),0)));
+    const grand=round2(tots.reduce((a,b)=>a+b,0));
+    return `<div class="psheet">
+      <h2>GDI Timesheet — ${k==="C3"?el("c3Label").value:el("c4Label").value}</h2>
+      <div class="meta"><b>Employee:</b> ${el("empName").value} &nbsp;·&nbsp; <b>Reporting period:</b> ${per} &nbsp;·&nbsp; <b>Total:</b> ${grand} h</div>
+      <table class="ptab"><tr><th>Project/Leave Code</th>${dayHead}<th>Tot</th></tr>${body}
+      <tr class="tot"><td>Total</td>${tots.map((t,i)=>{const dw=new Date(y,m-1,i+1).getDay();return `<td class="${dw===0||dw===6?"we":""}">${t||""}</td>`}).join("")}<td>${grand}</td></tr></table>
+      <div class="pcert"><b>Certification:</b> I hereby certify that the hours reported above were spent on the specified GDI project or leave codes and that they are true and accurate to the best of my knowledge and ability</div>
+      <div class="psig"><div>Employee Signature</div><div>Date Submitted</div><div>Supervisor Signature</div><div>Date Approved</div></div>
+    </div>`;
+  };
+  const flagged=Object.keys(S.entries).filter(id=>S.entries[id].flag||S.entries[id].note).map(id=>{
+    const a=actOf(id), e=S.entries[id];
+    return `<tr><td style="text-align:left;padding-left:3px">${dispName(a)}</td><td>${e.coding}${e.coding==="SPLIT"?` (${e.split}% c3)`:""}</td><td>${e.flag?"⚑ flag for review":""}</td><td style="text-align:left;padding-left:3px">${e.note||""}</td></tr>`;}).join("");
+  const flagBlock=flagged?`<div class="psheet"><h2>Flags &amp; notes — ${per}</h2>
+    <table class="ptab" style="table-layout:auto"><tr><th>Activity</th><th>Coding</th><th>Flag</th><th>Note</th></tr>${flagged}</table></div>`:"";
+  el("printArea").innerHTML=sheet("C3")+sheet("C4")+flagBlock;
+  document.body.classList.add("printing");
+  window.print();
+  setTimeout(()=>document.body.classList.remove("printing"),500);
+}
+
+/* ---------- Save / load month file ---------- */
+function saveJSON(){
+  save();
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`${el("period").value} - ${el("empName").value} - c3c4-timesheet.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function loadJSON(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ S=Object.assign({dayTypes:{},entries:{},custom:[]},JSON.parse(r.result));
+      migrateEntries();
+      localStorage.setItem(KEY,JSON.stringify(S));
+      applyState(); renderCats(); renderDayPick(); renderEntries(); renderGrids();
+    }catch(e){ alert("Could not read that file — is it a saved month from this tool?"); } };
+  r.readAsText(f); input.value="";
+}
+
+/* ---------- Excel export (GDI template layout) ---------- */
+async function exportSheet(kind){
+  if(!S.grids) return;
+  const {y,m,days}=monthInfo();
+  const rows=S.grids[kind];
+  const entity = kind==="C3"? el("c3Label").value : el("c4Label").value;
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet("Sheet1",{views:[{showGridLines:true}]});
+  const thin={style:"thin",color:{argb:"FF000000"}};
+  const box={top:thin,left:thin,bottom:thin,right:thin};
+
+  ws.getColumn(1).width=37.8;
+  for(let c=2;c<=33;c++) ws.getColumn(c).width=5.8;
+
+  // Header block
+  ws.getCell("A1").value="Employee Name:"; ws.getCell("A1").border=box;
+  ws.mergeCells("B1:F1"); ws.getCell("B1").value=el("empName").value+" — "+entity; ws.getCell("B1").border=box;
+  ws.mergeCells("S1:Y1"); ws.getCell("S1").value="Employee Leave should be charged as follows:"; ws.getCell("S1").border=box;
+  ws.mergeCells("Z1:AC1"); ws.getCell("Z1").value="Personal Leave/Vacation "; ws.getCell("Z1").border=box;
+  ws.getCell("A2").value="Reporting Period"; ws.getCell("A2").border=box;
+  ws.mergeCells("B2:F2"); ws.getCell("B2").value=new Date(Date.UTC(y,m-1,1)); ws.getCell("B2").numFmt="mmm-yy"; ws.getCell("B2").border=box;
+  ws.mergeCells("Z2:AC2"); ws.getCell("Z2").value="Sick "; ws.getCell("Z2").border=box;
+  ws.mergeCells("Z3:AC3"); ws.getCell("Z3").value="Public Holiday"; ws.getCell("Z3").border=box;
+
+  // Date header row 5 (template runs 31 day-columns, continuing past month end)
+  ws.getRow(5).height=26;
+  const h5=ws.getCell("A5"); h5.value="Project/Leave Code"; h5.font={bold:true}; h5.border=box;
+  for(let i=0;i<31;i++){ const c=ws.getCell(5,2+i);
+    c.value=new Date(Date.UTC(y,m-1,1+i)); c.numFmt="d-mmm"; c.font={bold:true}; c.border=box; c.alignment={horizontal:"center"}; }
+
+  // Activity rows (grid rows 6..; template leaves 6–20 for codes)
+  const nRows=Math.max(rows.length+1, 15); // keep at least template geometry
+  rows.forEach((r,ri)=>{
+    const row=6+ri;
+    const lc=ws.getCell(row,1); lc.value=r.label+(r.flag?" ⚑":""); lc.border=box; lc.alignment={wrapText:true,vertical:"top"};
+    for(let d=0;d<31;d++){ const c=ws.getCell(row,2+d); c.border=box;
+      if(d<days && r.cells[d]>0){ c.value=r.cells[d]; c.numFmt="0.##"; c.alignment={horizontal:"center"}; } }
+  });
+  // empty bordered rows to fill template grid
+  for(let ri=rows.length;ri<nRows-1;ri++){ const row=6+ri;
+    ws.getCell(row,1).border=box; for(let d=0;d<31;d++) ws.getCell(row,2+d).border=box; }
+  // Total row
+  const totRow=6+nRows-1;
+  const tc=ws.getCell(totRow,1); tc.value="Total"; tc.font={bold:true}; tc.border=box;
+  for(let d=0;d<31;d++){ const c=ws.getCell(totRow,2+d); c.border=box; c.font={bold:true}; c.alignment={horizontal:"center"};
+    if(d<days){ const t=round2(rows.reduce((a,r)=>a+(r.cells[d]||0),0)); if(t>0) c.value=t; } }
+
+  // Certification & signature blocks (template rows 22/26/31, shifted if grid ran long)
+  const shift=Math.max(0, totRow-20);
+  const certR=22+shift, empR=26+shift, supR=31+shift;
+  ws.getCell(certR,1).value="Certification"; ws.getCell(certR,1).font={bold:true};
+  ws.mergeCells(certR,2,certR+1,16);
+  const cert=ws.getCell(certR,2);
+  cert.value="I hereby certify that the hours reported above were spent on the specified GDI project or leave codes and that they are true and accurate to the best of my knowledge and ability";
+  cert.font={bold:true}; cert.alignment={wrapText:true,vertical:"top"}; cert.border=box;
+
+  ws.getCell(empR,1).value="Employee Signature"; ws.getCell(empR,1).font={bold:true};
+  ws.mergeCells(empR,2,empR+2,13); ws.getCell(empR,2).border=box;
+  ws.mergeCells(empR,16,empR,18); ws.getCell(empR,16).value="Date Submitted"; ws.getCell(empR,16).border=box;
+  ws.mergeCells(empR,19,empR+1,23); ws.getCell(empR,19).border=box;
+
+  ws.getCell(supR,1).value="Supervisor Signature"; ws.getCell(supR,1).font={bold:true};
+  ws.mergeCells(supR,2,supR+2,13); ws.getCell(supR,2).border=box;
+  ws.mergeCells(supR,16,supR,18); ws.getCell(supR,16).value="Date Approved"; ws.getCell(supR,16).border=box;
+  ws.mergeCells(supR,19,supR+1,23); ws.getCell(supR,19).border=box;
+
+  // Flags & notes sheet
+  const flagged=[];
+  for(const id in S.entries){ const e=S.entries[id]; const a=actOf(id);
+    if(e.flag||e.note) flagged.push({name:dispName(a), coding:e.coding+(e.coding==="SPLIT"?` (${e.split}% c3)`:""), flag:e.flag?"⚑ flagged for review":"", note:e.note||""}); }
+  if(flagged.length){
+    const fs=wb.addWorksheet("Flags & notes");
+    fs.columns=[{header:"Activity",width:60},{header:"Coding",width:16},{header:"Flag",width:20},{header:"Note",width:60}];
+    fs.getRow(1).font={bold:true};
+    flagged.forEach(f=>fs.addRow([f.name,f.coding,f.flag,f.note]));
+  }
+
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`${el("period").value} - ${el("empName").value} - Timesheet - ${entity.replace(/[\\/:*?"<>|]/g,"")}.xlsx`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- Misc ---------- */
+function resetAll(){ if(confirm("Clear all entries, grids and saved data?")){ localStorage.removeItem(KEY); location.reload(); } }
+["empName","period","c3Label","c4Label","hrsDay"].forEach(id=>el(id).addEventListener("change",()=>{
+  if(id==="period"){
+    if(!el("period").value){ el("period").value=S.period||defaultPeriod(); return; } // guard cleared month input
+    // restore the new month if it was worked on before; otherwise start it clean
+    // (no save() first — that would snapshot the old month's data under the new period)
+    const snap=localStorage.getItem(KEY+":"+el("period").value);
+    if(snap){ S=Object.assign({dayTypes:{},entries:{},custom:[]},JSON.parse(snap)); migrateEntries(); applyState(); }
+    else { S.period=el("period").value; S.entries={}; S.dayTypes={}; S.grids=null; S.edited=false; }
+    save(); renderCats(); renderDayPick(); renderEntries(); renderGrids();
+    return;
+  }
+  save();
+  if(id==="hrsDay"){ markStale(); renderSummary(); updateBar(); editState(); }
+  if(id==="c3Label"||id==="c4Label"){ if(S.grids) renderGrids(); }
+}));
+
+load(); renderCats(); renderDayPick(); renderEntries(); renderGrids();
+</script>
+</body>
+</html>
