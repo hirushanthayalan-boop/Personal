@@ -158,12 +158,14 @@
       <option>Hirushan Thayalan</option>
     </select></div>
     <div><label>Reporting period</label><input type="month" id="period">
-      <button class="wkbtn" style="margin-top:5px" onclick="duplicatePrevMonth()" title="Copy last month's activities, coding and hours into this month as a starting point">⧉ Duplicate previous month</button></div>
+      <button class="btn small secondary" style="margin-top:6px" onclick="duplicatePrevMonth()" title="Copy last month's activities, coding and hours into this month as a starting point">⧉ Duplicate previous month</button></div>
     <div><label>c3 entity label</label><input type="text" id="c3Label" value="GDI Solutions (c3)"></div>
     <div><label>c4 entity label</label><input type="text" id="c4Label" value="State AI Safety Action Fund (c4)"></div>
   </div>
   <div class="row" style="margin-top:12px">
     <div style="flex:0 0 140px"><label>Standard hours / day</label><input type="number" id="hrsDay" min="1" max="24" step="0.5" value="8"></div>
+    <div style="flex:0 0 190px"><label>% of your time on AI Safety</label><input type="number" id="alloc" min="5" max="100" step="5" value="100">
+      <span class="muted" style="font-size:11px">Auto-set by name (Trooper 100%, Brian/Hiru 30%) — adjust if needed. Scales capacity and leave.</span></div>
     <div style="flex:2;min-width:320px">
       <label>Holidays &amp; leave days — click a day to cycle: work → holiday → vacation → sick</label>
       <div class="daypick" id="dayPick"></div>
@@ -171,7 +173,7 @@
         <span><i style="background:var(--navy)"></i>Public Holiday</span>
         <span><i style="background:var(--mblue)"></i>Personal Leave/Vacation</span>
         <span><i style="background:var(--red)"></i>Sick</span>
-        <span>Marked days are auto-logged at standard hours on the c3 timesheet's leave rows and excluded when monthly hours are spread across working days.</span>
+        <span>Marked days are auto-logged on the c3 timesheet's leave rows at standard hours × your time %, and excluded when monthly hours are spread across working days.</span>
       </div>
     </div>
   </div>
@@ -220,7 +222,7 @@
 
 <div class="card">
   <h2>3 · Monthly hours, coding &amp; flags</h2>
-  <div class="hint">Enter total hours for the month per activity — the tool spreads them evenly across the month's working days (any day is editable in step 4). Use <b>Split</b> for genuinely mixed work. Flag gray-area calls for review rather than leaving them uncoded.</div>
+  <div class="hint">Enter time per activity either way — hours per working day (converted to a month total automatically) or the month total directly. Hours are spread evenly across the month's working days; any day is editable in step 4. Use <b>Split</b> for genuinely mixed work. Flag gray-area calls for review rather than leaving them uncoded.</div>
   <div id="entries"><div class="muted">No activities selected yet — toggle activities in step 2.</div></div>
   <div class="bar-wrap" id="barWrap" style="display:none">
     <div class="bar"><div class="seg3" id="seg3"></div><div class="seg4" id="seg4"></div><div class="mark" title="70/30 planning benchmark"></div></div>
@@ -276,14 +278,12 @@ const PROGRAMS = [
  {id:"rt", name:"1 · Monthly Roundtable", short:"Roundtable", items:[
   {id:"rt_conv", name:"Roundtable sessions & prep", code:"C4", gray:true, grayNote:"c4 by default per policy — Roundtable conversations touch specific legislation, policy models, enforcement"},
   {id:"rt_edu",  name:"AI-risk education & fluency content for Roundtable audiences", code:"C3"},
-  {id:"rt_adv",  name:"Follow-up advocacy with lawmakers on specific legislation", code:"C4"},
   {id:"rt_gen",  name:"General — Monthly Roundtable", code:"C3", gray:true, grayNote:GEN_NOTE},
  ]},
  {id:"ins", name:"2 · Insurable AI", short:"Insurable AI", items:[
   {id:"ins_comms",name:"Framing & comms (problem statement, dossier, media, public materials)", code:"C3"},
   {id:"ins_wk",  name:"Workshops & expert convenings (educational / roadmap)", code:"C3"},
-  {id:"ins_net", name:"Network building & stakeholder engagement", code:"C3", gray:true, grayNote:"c3 while educational engagement — flips c4 if coordinating stakeholders toward specific legislation"},
-  {id:"ins_pr",  name:"Principles development & endorsement outreach", code:"C3"},
+  {id:"ins_pr",  name:"Principles, endorsements & network engagement", code:"C3", gray:true, grayNote:"c3 while educational engagement — flips c4 if coordinating stakeholders toward specific legislation"},
   {id:"ins_adv", name:"Advocacy on specific insurance frameworks with lawmakers", code:"C4"},
   {id:"ins_gen", name:"General — Insurable AI", code:"C3", gray:true, grayNote:GEN_NOTE},
  ]},
@@ -294,25 +294,21 @@ const PROGRAMS = [
   {id:"liab_gen",name:"General — Liability", code:"C3", gray:true, grayNote:GEN_NOTE},
  ]},
  {id:"gov", name:"4 · Gubernatorial Transition", short:"Gub. Transition", items:[
-  {id:"gov_rm",  name:"AI roadmap development & technical assistance (generic onboarding/education)", code:"C3", gray:true, grayNote:"Leans c3 per guidance — flips c4 the moment it pushes specific policy priorities"},
-  {id:"gov_net", name:"Partner & association engagement (NGA, Results for America, state groups)", code:"C3"},
+  {id:"gov_rm",  name:"Roadmap development, TA & partner engagement (NGA, associations)", code:"C3", gray:true, grayNote:"Leans c3 per guidance — flips c4 the moment it pushes specific policy priorities"},
   {id:"gov_adv", name:"Pushing specific policy priorities with a transition team", code:"C4"},
   {id:"gov_gen", name:"General — Gubernatorial Transition", code:"C3", gray:true, grayNote:GEN_NOTE},
  ]},
  {id:"fund", name:"5 · Fundraising", short:"Fundraising", items:[
-  {id:"fund_c3", name:"Fundraising for c3 programs (GDI Solutions)", code:"C3"},
-  {id:"fund_c4", name:"Fundraising for the Action Fund (c4)", code:"C4"},
-  {id:"fund_rep",name:"Funder updates & grant reporting", code:"C3", gray:true, grayNote:"Code to the entity the grant funds — c3 for GDIS grants, c4 for Action Fund grants"},
+  {id:"fund_c3", name:"Fundraising & funder reporting — c3 programs (GDI Solutions)", code:"C3"},
+  {id:"fund_c4", name:"Fundraising & funder reporting — Action Fund (c4)", code:"C4"},
   {id:"fund_gen",name:"General — Fundraising", code:"C3", gray:true, grayNote:GEN_NOTE},
  ]},
  {id:"ops", name:"6 · Ops & Administration", short:"Ops", items:[
   {id:"ops_mgmt",name:"General management & operations", code:"SPLIT", gray:true, grayNote:"ED overhead — commonly split; set the % to match how the role is allocated"},
   {id:"ops_ent", name:"Entity compliance, records & shared services", code:"SPLIT", gray:true, grayNote:"Split per the shared-services agreement allocation"},
-  {id:"ops_gen", name:"General — Ops & Administration", code:"SPLIT", gray:true, grayNote:GEN_NOTE},
  ]},
  {id:"new", name:"7 · New Area Exploration", short:"New Area", items:[
-  {id:"new_res", name:"Scoping & landscape research on a new policy domain", code:"C3"},
-  {id:"new_conv",name:"Exploratory stakeholder & partner conversations", code:"C3"},
+  {id:"new_res", name:"Scoping & exploration (research, landscape, stakeholder conversations)", code:"C3"},
   {id:"new_leg", name:"Scoping specific legislative opportunities in a new area", code:"C4"},
   {id:"new_gen", name:"General — New Area Exploration", code:"C3", gray:true, grayNote:GEN_NOTE},
  ]},
@@ -323,12 +319,13 @@ PROGRAMS.forEach(p=>p.items.forEach(i=>{ i.prog=p.short; i.full=p.short+" — "+
 /* ---------- State ---------- */
 const KEY="gdi-c3c4-timesheet-v4";
 const LEAVE_LABELS={HOL:"Public Holiday",PTO:"Personal Leave/Vacation",SICK:"Sick"};
-let S = { period: defaultPeriod(), entries:{}, custom:[], grids:null, edited:false, dayTypes:{}, hrsDay:8 };
+let S = { period: defaultPeriod(), entries:{}, custom:[], grids:null, edited:false, dayTypes:{}, hrsDay:8, alloc:100 };
+const DEFAULT_ALLOC = {"Trooper Sanders":100, "Brian Shillinglaw":30, "Hirushan Thayalan":30};
 
 function defaultPeriod(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
 function save(){
   S.name=el("empName").value; S.c3Label=el("c3Label").value; S.c4Label=el("c4Label").value; S.period=el("period").value;
-  S.hrsDay=+el("hrsDay").value||8;
+  S.hrsDay=+el("hrsDay").value||8; S.alloc=Math.max(5,Math.min(100,+el("alloc").value||100));
   localStorage.setItem(KEY, JSON.stringify(S));
   if(S.period) localStorage.setItem(KEY+":"+S.period, JSON.stringify(S)); // per-month snapshot for duplicate/restore
 }
@@ -338,11 +335,11 @@ function duplicatePrevMonth(){
   const raw=localStorage.getItem(KEY+":"+prev);
   if(!raw){ alert("No saved report found for "+prev+". A month is saved automatically whenever you work on it, or load one from file first."); return; }
   const P=JSON.parse(raw);
-  if(Object.keys(S.entries).length && !confirm("Copy "+prev+" into "+cur+"? This replaces the current month's entries (day markings and grids reset).")) return;
-  const withHours=confirm("Also copy last month's hours as a starting point?\n\nOK = copy hours (adjust to actuals before exporting)\nCancel = activities & coding only, hours start at zero");
+  if(!confirm("Copy "+prev+" into "+cur+"?\n\nThis replaces anything already entered for "+cur+" (day markings and grids reset).\nCancel = stop, nothing changes.")) return;
+  const withHours=confirm("Keep last month's hours as a starting point?\n\nOK = keep hours (adjust to actuals before exporting)\nCancel = same activities & coding, hours reset to zero");
   S.entries=JSON.parse(JSON.stringify(P.entries||{}));
   if(!withHours) Object.values(S.entries).forEach(e=>e.hours=0);
-  S.custom=P.custom||S.custom; S.hrsDay=P.hrsDay||S.hrsDay;
+  S.custom=P.custom||S.custom; S.hrsDay=P.hrsDay||S.hrsDay; S.alloc=P.alloc||S.alloc;
   S.dayTypes={}; S.grids=null; S.edited=false;
   save(); applyState(); renderCats(); renderDayPick(); renderEntries(); renderGrids();
 }
@@ -362,7 +359,7 @@ function applyState(){
   if(S.name) el("empName").value=S.name;
   if(S.c3Label) el("c3Label").value=S.c3Label;
   if(S.c4Label) el("c4Label").value=S.c4Label;
-  el("hrsDay").value=S.hrsDay||8;
+  el("hrsDay").value=S.hrsDay||8; el("alloc").value=S.alloc||100;
 }
 function el(id){return document.getElementById(id)}
 
@@ -462,16 +459,21 @@ function renderEntries(){
         <label class="flagbox"><input type="checkbox" ${e.flag?"checked":""} onchange="S.entries['${id}'].flag=this.checked;markStale();save();renderFlags()"> ⚑ flag for review</label>
         <button class="rm" title="Remove" onclick="toggle('${id}')">×</button>
       </div>
-      <div class="weeks"><div class="wk" style="min-width:170px"><label>Hours this month <span style="font-weight:400">(spread over ${nWd} working days)</span></label>
-        <input type="number" min="0" step="0.25" placeholder="0" value="${e.hours||""}" onchange="this.value=Math.max(0,+this.value||0);S.entries['${id}'].hours=+this.value;markStale();save();updateBar()"></div>
-        <div class="wk" style="align-self:flex-end;min-width:auto"><span class="muted">≈ ${e.hours? round2(e.hours/nWd):0} h/working day</span></div>
+      <div class="weeks">
+        <div class="wk" style="min-width:150px"><label>Hours / working day</label>
+        <input type="number" min="0" step="0.25" placeholder="0" value="${e.hours? round2(e.hours/nWd):""}" onchange="setRate('${id}',this.value)"></div>
+        <div class="wk" style="align-self:center;min-width:auto;padding-top:14px"><span class="muted">× ${nWd} working days =</span></div>
+        <div class="wk" style="min-width:150px"><label>Month total (h)</label>
+        <input type="number" min="0" step="0.25" placeholder="0" value="${e.hours||""}" onchange="setHours('${id}',this.value)"></div>
       </div>
       <div class="note-in"><input type="text" placeholder="Note (optional — context for flags / splits)" value="${(e.note||"").replace(/"/g,"&quot;")}" onchange="S.entries['${id}'].note=this.value;markStale();save()"></div>
     </div>`;
   }).join("");
   updateBar();
 }
-function markStale(){ if(S.grids && !S.stale){ S.stale=true; editState(); renderSummary(); } else if(S.grids){ S.stale=true; } }
+function markStale(){ if(S.grids && !S.stale){ S.stale=true; editState(); setDl(); } else if(S.grids){ S.stale=true; } }
+function setRate(id,v){ const r=Math.max(0,+v||0); S.entries[id].hours=round2(r*monthWorkdays().length); markStale(); save(); renderEntries(); }
+function setHours(id,v){ S.entries[id].hours=Math.max(0,+v||0); markStale(); save(); renderEntries(); }
 function setCoding(id,c){ S.entries[id].coding=c; markStale(); save(); renderEntries(); renderSummary(); }
 function entryTotals(){
   let t3=0,t4=0;
@@ -494,12 +496,12 @@ function updateBar(){
   renderFlags();
 }
 function capacity(){
-  const {y,m,days}=monthInfo(); const hrs=S.hrsDay||8;
+  const {y,m,days}=monthInfo(); const hrs=S.hrsDay||8, f=(S.alloc||100)/100;
   let wd=0, leave=0;
   for(let d=1;d<=days;d++){ const dw=new Date(y,m-1,d).getDay();
     if(S.dayTypes[d]) leave++;
     else if(dw>0&&dw<6) wd++; }
-  return {workdays:wd, leaveDays:leave, work:wd*hrs, leave:leave*hrs, total:(wd+leave)*hrs};
+  return {workdays:wd, leaveDays:leave, work:round2(wd*hrs*f), leave:round2(leave*hrs*f), total:round2((wd+leave)*hrs*f)};
 }
 function renderFlags(){
   const f=Object.keys(S.entries).filter(id=>S.entries[id].flag)
@@ -523,13 +525,13 @@ function buildGrids(confirmOverwrite){
     if(h) for(const k in tgt) distribute(round2(h*tgt[k].f), wd, tgt[k].row.cells);
     for(const k in tgt){ if(tgt[k].row.cells.some(v=>v>0)) g[k].push(tgt[k].row); }
   }
-  // Auto leave rows from the day picker (always filed to the c3 timesheet)
-  const hrs=S.hrsDay||8, ent="C3";
+  // Auto leave rows from the day picker (always filed to the c3 timesheet, scaled to this person's allocation)
+  const leaveH=round2((S.hrsDay||8)*(S.alloc||100)/100), ent="C3";
   ["HOL","PTO","SICK"].forEach(t=>{
     const marked=Object.keys(S.dayTypes).filter(d=>S.dayTypes[d]===t&&+d<=days).map(Number);
     if(!marked.length) return;
     const row={label:LEAVE_LABELS[t], flag:false, note:"auto-logged from day picker", cells:Array(days).fill(0)};
-    marked.forEach(d=>row.cells[d-1]=hrs);
+    marked.forEach(d=>row.cells[d-1]=leaveH);
     g[ent].push(row);
   });
   S.grids=g; S.edited=false; S.stale=false; save(); renderGrids();
@@ -561,10 +563,10 @@ function cellEdit(k,ri,ci,v){ S.grids[k][ri].cells[ci]=Math.max(0,+v||0); S.edit
 function addRow(k){ const {days}=monthInfo(); S.grids[k].push({label:"New line item",flag:false,note:"",cells:Array(days).fill(0)}); S.edited=true; save(); renderGrids(); }
 function editState(){
   const st=el("editState");
-  if(S.stale){ st.innerHTML='<span class="bad">⚠ Entries changed since grids were built — rebuild before exporting, or exports will use the old allocation.</span>'; return; }
-  st.textContent = S.edited? "Manual edits applied — rebuild discards them." : (S.grids? "Grids generated from monthly entries." : "");
+  if(S.stale){ st.innerHTML='<span class="bad">⚠ Entries changed since grids were built — rebuild to refresh (downloads are paused until you do).</span>'; return; }
+  st.textContent = S.edited? "Manual edits applied — rebuild discards them." : (S.grids? "Grids generated from monthly entries." : "Done entering hours in step 3? Click Build to turn them into your two timesheets.");
 }
-function setDl(){ const ok=!!S.grids; ["dl3","dl4","dlBoth","dlPdf"].forEach(i=>el(i).disabled=!ok); renderSummary(); }
+function setDl(){ const ok=!!S.grids && !S.stale; ["dl3","dl4","dlBoth","dlPdf"].forEach(i=>el(i).disabled=!ok); renderSummary(); }
 
 /* ---------- Summary panel ---------- */
 function gridTotal(k){ return S.grids? round2(S.grids[k].reduce((a,r)=>a+r.cells.reduce((x,y)=>x+y,0),0)) : 0; }
@@ -577,11 +579,13 @@ function renderSummary(){
   const cap=capacity();
   const delta=round2(tot-(cap.work+cap.leave));
   const nFlags=Object.keys(S.entries).filter(id=>S.entries[id].flag).length;
-  box.innerHTML=staleWarn+`<div class="sumgrid">
+  const nZero=Object.keys(S.entries).filter(id=>!(+S.entries[id].hours)).length;
+  const zeroWarn=nZero?`<div class="warn">${nZero} selected activit${nZero===1?"y has":"ies have"} no hours and won't appear on the timesheets — enter hours in step 3 or remove them.</div>`:"";
+  box.innerHTML=staleWarn+zeroWarn+`<div class="sumgrid">
     <div class="sumcard"><div class="big">${t3}</div><div class="lab">c3 hours (${p3}%)</div></div>
     <div class="sumcard c4"><div class="big">${t4}</div><div class="lab">c4 hours (${100-p3}%)</div></div>
     <div class="sumcard"><div class="big">${tot}</div><div class="lab">total logged</div></div>
-    <div class="sumcard"><div class="big">${cap.work+cap.leave}</div><div class="lab">capacity (${cap.workdays} wd × ${S.hrsDay||8}h + ${cap.leaveDays} leave)</div></div>
+    <div class="sumcard"><div class="big">${round2(cap.work+cap.leave)}</div><div class="lab">capacity (${cap.workdays} wd × ${S.hrsDay||8}h × ${S.alloc||100}% + ${cap.leaveDays} leave)</div></div>
     <div class="sumcard"><div class="big ${Math.abs(delta)<0.01?"ok":"bad"}" style="font-size:20px;padding-top:5px">${Math.abs(delta)<0.01?"✓ balanced":(delta<0? round2(-delta)+" h short":delta+" h over")}</div><div class="lab">vs capacity</div></div>
   </div>
   <div class="muted" style="margin-bottom:10px">${p3>=60&&p3<=80?`<span class="ok">Mix is near the 70/30 planning benchmark.</span>`:`<span>Mix is ${p3}/${100-p3} vs the 70/30 planning benchmark — that's fine if it reflects actual work (code what you actually did).</span>`}
@@ -591,6 +595,8 @@ function renderSummary(){
 /* ---------- Print / Save as PDF ---------- */
 function printPDF(){
   if(!S.grids) return;
+  if(S.stale){ alert("Entries changed since the grids were built — rebuild in step 4 first, then export."); return; }
+  if(!el("empName").value){ alert("Select your name in step 1 before exporting."); return; }
   const {y,m,days}=monthInfo();
   const per=`${monName(m)} ${y}`;
   const dayHead=Array.from({length:days},(_,i)=>{const dw=new Date(y,m-1,i+1).getDay();
@@ -644,6 +650,10 @@ function loadJSON(input){
 /* ---------- Excel export (GDI template layout) ---------- */
 async function exportSheet(kind){
   if(!S.grids) return;
+  if(S.stale){ alert("Entries changed since the grids were built — rebuild in step 4 first, then export."); return; }
+  if(!el("empName").value){ alert("Select your name in step 1 before exporting."); return; }
+  if(gridTotal("C3")+gridTotal("C4")===0){ alert("No hours logged yet — enter hours in step 3 and rebuild the grids."); return; }
+  if(gridTotal(kind)===0 && !confirm("This "+(kind==="C3"?"c3":"c4")+" timesheet has no hours. Download it anyway?")) return;
   const {y,m,days}=monthInfo();
   const rows=S.grids[kind];
   const entity = kind==="C3"? el("c3Label").value : el("c4Label").value;
@@ -727,8 +737,12 @@ async function exportSheet(kind){
 }
 
 /* ---------- Misc ---------- */
-function resetAll(){ if(confirm("Clear all entries, grids and saved data?")){ localStorage.removeItem(KEY); location.reload(); } }
-["empName","period","c3Label","c4Label","hrsDay"].forEach(id=>el(id).addEventListener("change",()=>{
+function resetAll(){
+  if(!confirm("Clear this browser's saved timesheet data for ALL months? This cannot be undone.")) return;
+  Object.keys(localStorage).filter(k=>k===KEY||k.startsWith(KEY+":")).forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+["empName","period","c3Label","c4Label","hrsDay","alloc"].forEach(id=>el(id).addEventListener("change",()=>{
   if(id==="period"){
     if(!el("period").value){ el("period").value=S.period||defaultPeriod(); return; } // guard cleared month input
     // restore the new month if it was worked on before; otherwise start it clean
@@ -739,8 +753,9 @@ function resetAll(){ if(confirm("Clear all entries, grids and saved data?")){ lo
     save(); renderCats(); renderDayPick(); renderEntries(); renderGrids();
     return;
   }
+  if(id==="empName" && DEFAULT_ALLOC[el("empName").value]!==undefined){ el("alloc").value=DEFAULT_ALLOC[el("empName").value]; }
   save();
-  if(id==="hrsDay"){ markStale(); renderSummary(); updateBar(); editState(); }
+  if(id==="hrsDay"||id==="alloc"||id==="empName"){ markStale(); renderSummary(); updateBar(); editState(); }
   if(id==="c3Label"||id==="c4Label"){ if(S.grids) renderGrids(); }
 }));
 
