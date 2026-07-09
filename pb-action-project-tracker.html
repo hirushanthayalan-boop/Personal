@@ -304,6 +304,22 @@ try{
   if(!state||state.v!==3){ state=freshSuite(); save(); }
 }catch(e){ state=freshSuite(); }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+// ==== PENDING_UPDATES_START (managed by gdi-tracker-review skill — do not hand-edit) ====
+const PENDING_UPDATES={version:1,date:"2026-07-06",updates:[
+{"project":"BI Ghana — Phase 2","task":"Public JD release","status":"done","note":"Research & Methods Lead posting live: SmartRecruiters + GDI website Jun 30, GDI LinkedIn Jul 1"},
+{"project":"BI Ghana — Phase 2","task":"Partner outreach — JD feedback + candidate recs","status":"done","note":"JD feedback from Nathan Lazarus (MIT) and Chris Kinally (Pure Earth) incorporated; referral asks sent to partners Jul 1"},
+{"project":"BI Ghana — Phase 2","task":"Candidate sourcing + screening","status":"ip","note":"Circulating via partner networks (LeadResearch, MIT, Stanford, Pure Earth) and job boards (ISES free posting confirmed Jul 2); Jenna Forsyth flagging former students"},
+{"project":"BI Nigeria","task":"Comprehensive approach — sampling, economics protocol, rigor bar","status":"ip","note":"Measurement partner scoping underway ahead of design start: IDInsight collaboration summary (Lauren) and Columbia scoping email drafted Jun 30, both covering Ghana + Nigeria"},
+{"project":"BI Ghana — Phase 2","headline":"Research & Methods Lead JD is public and sourcing is running through partner networks and job boards"},
+{"project":"BI Nigeria","headline":"Measurement partner scoping (IDInsight, Columbia) started ahead of the comprehensive-approach design window"}
+]};
+// ==== PENDING_UPDATES_END ====
+// auto-apply approved updates embedded in this file (version-guarded; never applies twice)
+if(PENDING_UPDATES.version>(state.updVersion||0)){
+  const res=applyUpdates(PENDING_UPDATES.updates);
+  state.updVersion=PENDING_UPDATES.version; save();
+  window.__updNotice="Applied "+res.ok.length+" update"+(res.ok.length===1?"":"s")+" from the "+(PENDING_UPDATES.date||"latest")+" review"+(res.skip.length?" ("+res.skip.length+" skipped — see Import updates to retry manually)":"");
+}
 function proj(){ return state.projects.find(p=>p.id===state.activeId)||state.projects[0]; }
 function phases(p){ const out=[]; p.tasks.forEach(t=>{ if(!out.includes(t.phase))out.push(t.phase); }); return out; }
 
@@ -930,10 +946,7 @@ function findTaskByName(p,name){
 }
 $("importBtn").onclick=()=>{ $("impText").value=""; $("impResult").textContent=""; $("impBg").classList.add("open"); };
 $("impCancel").onclick=()=>$("impBg").classList.remove("open");
-$("impApply").onclick=()=>{
-  let data;
-  try{ data=JSON.parse($("impText").value); }catch(e){ $("impResult").textContent="Invalid JSON: "+e.message; return; }
-  const ups=Array.isArray(data)?data:(data.updates||[]);
+function applyUpdates(ups){
   const ok=[], skip=[];
   ups.forEach((u,i)=>{
     const tag="#"+(i+1)+": ";
@@ -958,12 +971,26 @@ $("impApply").onclick=()=>{
     if(u.end&&!t.ms){ t.end=u.end; ok.push(tag+t.name+" end → "+u.end); }
     if(u.note){ t.notes=(t.notes?t.notes+"\n":"")+u.note; ok.push(tag+"note added — "+t.name); }
   });
+  return {ok,skip};
+}
+$("impApply").onclick=()=>{
+  let data;
+  try{ data=JSON.parse($("impText").value); }catch(e){ $("impResult").textContent="Invalid JSON: "+e.message; return; }
+  const ups=Array.isArray(data)?data:(data.updates||[]);
+  const res=applyUpdates(ups);
   save(); render();
-  $("impResult").textContent="Applied "+ok.length+", skipped "+skip.length+(ok.length||skip.length?"\n"+ok.concat(skip).join("\n"):"");
+  $("impResult").textContent="Applied "+res.ok.length+", skipped "+res.skip.length+(res.ok.length||res.skip.length?"\n"+res.ok.concat(res.skip).join("\n"):"");
 };
 [["editBg"],["slideBg"],["projBg"],["impBg"]].forEach(([id])=>{ $(id).addEventListener("click",e=>{ if(e.target.id===id)$(id).classList.remove("open"); }); });
 window.addEventListener("resize",()=>render());
 syncHeadline(); render();
+if(window.__updNotice){
+  const d=document.createElement("div");
+  d.style.cssText="background:#DFE4ED;color:#100063;padding:8px 14px;border-radius:6px;margin:0 0 12px;font-size:12.5px;font-weight:bold;cursor:pointer;";
+  d.textContent=window.__updNotice+"  (click to dismiss)";
+  d.onclick=()=>d.remove();
+  document.querySelector(".tabs").after(d);
+}
 </script>
 </body>
 </html>

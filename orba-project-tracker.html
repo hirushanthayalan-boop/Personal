@@ -287,6 +287,20 @@ if(!state.fix1){
   });
   state.fix1=true; save();
 }
+// ==== PENDING_UPDATES_START (managed by gdi-tracker-review skill — do not hand-edit) ====
+const PENDING_UPDATES={version:1,date:"2026-07-06",updates:[
+{"project":"ORBA 3-Year Legal Strategy","task":"Team kickoff","status":"ip","note":"Launch huddle set for Tue Jul 7 - agenda proposed in #orba Jul 2: Evanston retrospective + partnership flyer, EA/intern contract next steps, brand & fundraising status"},
+{"project":"ORBA 3-Year Legal Strategy","addTask":{"phase":"Setup","name":"Strategy advisor sessions","owner":"Hiru + Chintan","start":"2026-07-06","end":"2026-07-13","ms":false,"status":"ip"}},
+{"project":"ORBA 3-Year Legal Strategy","task":"Strategy advisor sessions","note":"Broad invite to 10 advisors Jun 30; first two sessions Mon Jul 6. RSVPs light - Nick all 4, Carlton both Jul 6 sessions, Lisa confirmed, Robin flexible; Nkechi stipend request declined by Justin. Plan per Chintan: stay the course, flex agenda by attendance"},
+{"project":"ORBA 3-Year Legal Strategy","headline":"Strategy advisor sessions launched (first two Mon Jul 6 despite light RSVPs) and team launch huddle set for Tue Jul 7"}
+]};
+// ==== PENDING_UPDATES_END ====
+// auto-apply approved updates embedded in this file (version-guarded; never applies twice)
+if(PENDING_UPDATES.version>(state.updVersion||0)){
+  const res=applyUpdates(PENDING_UPDATES.updates);
+  state.updVersion=PENDING_UPDATES.version; save();
+  window.__updNotice="Applied "+res.ok.length+" update"+(res.ok.length===1?"":"s")+" from the "+(PENDING_UPDATES.date||"latest")+" review"+(res.skip.length?" ("+res.skip.length+" skipped — see Import updates to retry manually)":"");
+}
 function proj(){ return state.projects.find(p=>p.id===state.activeId)||state.projects[0]; }
 function phases(p){ const out=[]; p.tasks.forEach(t=>{ if(!out.includes(t.phase))out.push(t.phase); }); return out; }
 
@@ -972,10 +986,7 @@ function findTaskByName(p,name){
 }
 $("importBtn").onclick=()=>{ $("impText").value=""; $("impResult").textContent=""; $("impBg").classList.add("open"); };
 $("impCancel").onclick=()=>$("impBg").classList.remove("open");
-$("impApply").onclick=()=>{
-  let data;
-  try{ data=JSON.parse($("impText").value); }catch(e){ $("impResult").textContent="Invalid JSON: "+e.message; return; }
-  const ups=Array.isArray(data)?data:(data.updates||[]);
+function applyUpdates(ups){
   const ok=[], skip=[];
   ups.forEach((u,i)=>{
     const tag="#"+(i+1)+": ";
@@ -1000,12 +1011,26 @@ $("impApply").onclick=()=>{
     if(u.end&&!t.ms){ t.end=u.end; ok.push(tag+t.name+" end → "+u.end); }
     if(u.note){ t.notes=(t.notes?t.notes+"\n":"")+u.note; ok.push(tag+"note added — "+t.name); }
   });
+  return {ok,skip};
+}
+$("impApply").onclick=()=>{
+  let data;
+  try{ data=JSON.parse($("impText").value); }catch(e){ $("impResult").textContent="Invalid JSON: "+e.message; return; }
+  const ups=Array.isArray(data)?data:(data.updates||[]);
+  const res=applyUpdates(ups);
   save(); render();
-  $("impResult").textContent="Applied "+ok.length+", skipped "+skip.length+(ok.length||skip.length?"\n"+ok.concat(skip).join("\n"):"");
+  $("impResult").textContent="Applied "+res.ok.length+", skipped "+res.skip.length+(res.ok.length||res.skip.length?"\n"+res.ok.concat(res.skip).join("\n"):"");
 };
 [["editBg"],["slideBg"],["projBg"],["impBg"]].forEach(([id])=>{ $(id).addEventListener("click",e=>{ if(e.target.id===id)$(id).classList.remove("open"); }); });
 window.addEventListener("resize",()=>render());
 syncHeadline(); render();
+if(window.__updNotice){
+  const d=document.createElement("div");
+  d.style.cssText="background:#DFE4ED;color:#100063;padding:8px 14px;border-radius:6px;margin:0 0 12px;font-size:12.5px;font-weight:bold;cursor:pointer;";
+  d.textContent=window.__updNotice+"  (click to dismiss)";
+  d.onclick=()=>d.remove();
+  document.querySelector(".tabs").after(d);
+}
 </script>
 </body>
 </html>

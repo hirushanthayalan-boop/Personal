@@ -1,0 +1,12 @@
+{
+  "updates": [
+    {"project": "BI Ghana — Phase 2", "task": "Team feedback on alignment deck", "status": "ip", "note": "WIP Ghana alignment deck sent to Ben Jun 11 for detailed feedback ahead of the Jun 22 session (email: 'WIP Pb Action Ghana Alignment Deck')."},
+    {"project": "BI Ghana — Phase 2", "headline": "Alignment deck out for team feedback ahead of the June 22 decision session"},
+    {"project": "BI × Pure Earth Scaling", "task": "BI follow-up session + decisions doc", "status": "ip", "note": "PE Battery Index decisions summary doc shared with Jess Jun 11 and discussed that afternoon; Jess booked follow-up time Jun 10-11."},
+    {"project": "BI × Pure Earth Scaling", "headline": "PE decisions doc drafted and discussed with Jess Jun 11 - SOW drafting is next, Jun 19 send date holds"},
+    {"project": "Team Operations", "task": "Role definition 1:1s with Jess", "status": "ip", "note": "Jess (Jun 10, #ulab-recycling-transformation): 'I'd like to do some 1:1 calls on roles in the next few days'. Hiru sent role/allocation answers Jun 8 (50% time)."},
+    {"project": "Team Operations", "task": "Portfolio budget + funding ask refresh", "status": "ip", "note": "Pulled well ahead of Jul 13 plan: Jess posted final budget for Coefficient submission Jun 11 (IDC <18%, allocations increased); expects possible further edits from Coefficient."},
+    {"project": "Team Operations", "addTask": {"phase": "Financials", "name": "May monthly close — cashflow actuals + memo", "owner": "Hiru", "start": "2026-06-11", "end": "2026-06-19", "ms": false, "status": "ns"}},
+    {"project": "Team Operations", "headline": "May financial report landed Jun 11 and the portfolio budget refresh effectively pulled forward - final budget submitted to Coefficient"}
+  ]
+}

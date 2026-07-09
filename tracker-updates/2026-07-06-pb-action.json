@@ -1,0 +1,10 @@
+{
+  "updates": [
+    {"project": "BI Ghana — Phase 2", "task": "Public JD release", "status": "done", "note": "Research & Methods Lead posting live: SmartRecruiters + GDI website Jun 30, GDI LinkedIn Jul 1"},
+    {"project": "BI Ghana — Phase 2", "task": "Partner outreach — JD feedback + candidate recs", "status": "done", "note": "JD feedback from Nathan Lazarus (MIT) and Chris Kinally (Pure Earth) incorporated; referral asks sent to partners Jul 1"},
+    {"project": "BI Ghana — Phase 2", "task": "Candidate sourcing + screening", "status": "ip", "note": "Circulating via partner networks (LeadResearch, MIT, Stanford, Pure Earth) and job boards (ISES free posting confirmed Jul 2); Jenna Forsyth flagging former students"},
+    {"project": "BI Nigeria", "task": "Comprehensive approach — sampling, economics protocol, rigor bar", "status": "ip", "note": "Measurement partner scoping underway ahead of design start: IDInsight collaboration summary (Lauren) and Columbia scoping email drafted Jun 30, both covering Ghana + Nigeria"},
+    {"project": "BI Ghana — Phase 2", "headline": "Research & Methods Lead JD is public and sourcing is running through partner networks and job boards"},
+    {"project": "BI Nigeria", "headline": "Measurement partner scoping (IDInsight, Columbia) started ahead of the comprehensive-approach design window"}
+  ]
+}

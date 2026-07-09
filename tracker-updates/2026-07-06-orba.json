@@ -1,0 +1,8 @@
+{
+  "updates": [
+    {"project": "ORBA 3-Year Legal Strategy", "task": "Team kickoff", "status": "ip", "note": "Launch huddle set for Tue Jul 7 - agenda proposed in #orba Jul 2: Evanston retrospective + partnership flyer, EA/intern contract next steps, brand & fundraising status"},
+    {"project": "ORBA 3-Year Legal Strategy", "addTask": {"phase": "Setup", "name": "Strategy advisor sessions", "owner": "Hiru + Chintan", "start": "2026-07-06", "end": "2026-07-13", "ms": false, "status": "ip"}},
+    {"project": "ORBA 3-Year Legal Strategy", "task": "Strategy advisor sessions", "note": "Broad invite to 10 advisors Jun 30; first two sessions Mon Jul 6. RSVPs light - Nick all 4, Carlton both Jul 6 sessions, Lisa confirmed, Robin flexible; Nkechi stipend request declined by Justin. Plan per Chintan: stay the course, flex agenda by attendance"},
+    {"project": "ORBA 3-Year Legal Strategy", "headline": "Strategy advisor sessions launched (first two Mon Jul 6 despite light RSVPs) and team launch huddle set for Tue Jul 7"}
+  ]
+}

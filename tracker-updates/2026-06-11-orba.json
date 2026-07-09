@@ -1,0 +1,8 @@
+{
+  "updates": [
+    {"project": "ORBA 3-Year Legal Strategy", "task": "Finalize project plan, circulate to Justin", "status": "ip", "note": "Started ahead of Jun 15 plan. Launch Huddle held Jun 9; 3-year strategy push briefing doc shared with Esther Jun 10 for Jun 11 working call 'to get to a clear plan on how we can execute'. Full-team session with Justin being scheduled for Mon Jun 15 / Tue Jun 16."},
+    {"project": "ORBA 3-Year Legal Strategy", "headline": "Launch Huddle held Jun 9 - project plan work started early with Esther, full-team session with Justin targeted for Jun 15-16"},
+    {"project": "ORBA Rapid Response", "addTask": {"phase": "Operating", "name": "Defending Evanston rapid response call (Jenner & Block)", "owner": "Esther + Justin", "start": "2026-06-12", "end": "2026-06-12", "ms": false, "status": "ip"}},
+    {"project": "ORBA Rapid Response", "headline": "Rapid response activating ahead of setup - Defending Evanston session with Jenner & Block set for Jun 12"}
+  ]
+}
